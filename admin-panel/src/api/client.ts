@@ -2,8 +2,10 @@ import axios from 'axios';
 
 // Configure Axios instance
 // TODO: Use environment variable for API URL in production
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export const api = axios.create({
-    baseURL: 'http://localhost:3000',
+    baseURL,
 });
 
 // Add request interceptor to include token

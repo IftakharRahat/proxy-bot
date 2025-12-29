@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api/client';
 
 interface PackageConfig {
     name: string;
@@ -20,7 +20,7 @@ export const InventorySettings: React.FC = () => {
 
     const fetchConfigs = async () => {
         try {
-            const res = await axios.get('/admin/packages');
+            const res = await api.get('/admin/packages');
             setConfigs(res.data);
             setLoading(false);
         } catch (err) {
@@ -34,7 +34,7 @@ export const InventorySettings: React.FC = () => {
 
     const handleUpdateConfig = async (name: string, data: Partial<PackageConfig>) => {
         try {
-            await axios.patch(`/admin/packages/${name}`, data);
+            await api.patch(`/admin/packages/${name}`, data);
             alert(`${name} updated successfully!`);
             fetchConfigs();
         } catch (err) {
@@ -45,7 +45,7 @@ export const InventorySettings: React.FC = () => {
     const handleManualRefill = async () => {
         setRefillLoading(true);
         try {
-            const res = await axios.post('/admin/refill', {
+            const res = await api.post('/admin/refill', {
                 packageType: refillPkg,
                 duration: refillDuration,
                 quantity: refillQty,

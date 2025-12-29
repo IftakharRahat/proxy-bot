@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api/client';
 
 interface PurchaseLog {
     id: number;
@@ -18,7 +18,7 @@ export const PurchaseHistory: React.FC = () => {
     useEffect(() => {
         const fetchLogs = async () => {
             try {
-                const res = await axios.get('/admin/purchases');
+                const res = await api.get('/admin/purchases');
                 setLogs(res.data);
                 setLoading(false);
             } catch (err) {
@@ -66,7 +66,7 @@ export const PurchaseHistory: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${log.packageType === 'High' ? 'bg-purple-100 text-purple-700' :
-                                                log.packageType === 'Medium' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                            log.packageType === 'Medium' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
                                             }`}>
                                             {log.packageType}
                                         </span>

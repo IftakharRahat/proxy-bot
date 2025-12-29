@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getActiveSessions } from '../api/client';
+import { getActiveSessions, api } from '../api/client';
 import { Server, Clock, RefreshCw, Zap } from 'lucide-react';
-import axios from 'axios';
 
 export const ProxiesPage = () => {
     const [sessions, setSessions] = useState<any[]>([]);
@@ -25,10 +24,7 @@ export const ProxiesPage = () => {
     const handleChangeCountry = async (sessionId: number, newCountry: string) => {
         try {
             setUpdatingId(sessionId);
-            await axios.patch(`${import.meta.env.VITE_API_URL}/admin/proxies/${sessionId}/change-country`,
-                { newCountry },
-                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-            );
+            await api.patch(`/admin/proxies/${sessionId}/change-country`, { newCountry });
             fetchSessions();
             alert(`Changed country to ${newCountry}`);
         } catch (error: any) {
@@ -41,9 +37,7 @@ export const ProxiesPage = () => {
 
     const handleRotate = async (sessionId: number) => {
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/admin/proxies/${sessionId}/rotate`, {}, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
+            await api.post(`/admin/proxies/${sessionId}/rotate`, {});
             fetchSessions();
             alert('IP Rotated');
         } catch (error) {
