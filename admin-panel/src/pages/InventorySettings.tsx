@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Settings, Zap, Shield, Save, Package, RefreshCcw } from 'lucide-react';
+import clsx from 'clsx';
 
 interface PackageConfig {
     name: string;
