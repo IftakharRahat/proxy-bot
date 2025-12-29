@@ -10,6 +10,7 @@ import { BotModule } from './bot/bot.module';
 import { QueueModule } from './queue/queue.module';
 import { PaymentModule } from './payment/payment.module';
 import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminModule } from './admin/admin.module';
     PaymentModule,
     AdminModule,
     SessionManagerModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
