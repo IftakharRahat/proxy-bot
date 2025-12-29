@@ -16,7 +16,7 @@ export const Login: React.FC = () => {
         setError('');
         try {
             const res = await api.post('/auth/login', { username, password });
-            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('token', res.data.access_token);
             navigate('/');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Unauthorized: Terminal access denied.');

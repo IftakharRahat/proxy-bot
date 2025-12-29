@@ -17,6 +17,20 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+// Add response interceptor to handle 401 Unauthorized
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 // User API
 export const getUsers = async () => {
     const response = await api.get('/admin/users');
