@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PortProtocol {
+  HTTP
+  SOCKS5
+}
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  telegramId  String   @unique
+  username    String?
+  balance     Decimal  @default(0.0)
+  role        UserRole @default(USER)
+  password    String?  // For Admin login
+  
+  // Referral System
+  referredById Int?
+  referralEarnings Decimal @default(0.0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    ProxySession[]
+  transactions Transaction[]
+  
+  referredBy  User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals   User[]   @relation("UserReferrals")
+}
+
+model Port {
+  id          Int          @id @default(autoincrement())
+  host        String
+  port        Int
+  protocol    PortProtocol @default(HTTP)
+  country     String
+  
+  packageType String       @default("Normal") // Normal, Medium, High
+  
+  maxUsers    Int          @default(10)
+  currentUsers Int         @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  sessions    ProxySession[]
+}
+
+model PackageConfig {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique // Normal, Medium, High
+  maxUsers        Int      @default(1)
+  autoBuyEnabled  Boolean  @default(false)
+  autoBuyDuration String   @default("1 Day") // 1 Day, 7 Days, 30 Days
+  updatedAt       DateTime @updatedAt
+}
+
+model PurchaseLog {
+  id          Int      @id @default(autoincrement())
+  timestamp   DateTime @default(now())
+  packageType String
+  duration    String
+  cost        Decimal
+  orderId     String?  // From Novproxy
+  status      String   @default("SUCCESS")
+}
+
+model SystemSetting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}
+
+model ProxySession {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  portId        Int
+  
+  // Generated credentials
+  proxyUser     String        // The username string generated (e.g. user-nov-...)
+  proxyPass     String
+  
+  // Session details
+  customUser    String?       // User's custom label/username
+  customPass    String?       // User's custom password (stored for ref)
+  
+  status        SessionStatus @default(ACTIVE)
+  expiresAt     DateTime
+  lastRotatedAt DateTime?
+  rotationPeriod Int         @default(30) // Minutes
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id])
+  port          Port          @relation(fields: [portId], references: [id])
+
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  amount      Decimal
+  currency    String   @default("BDT")
+  gateway     String   // bKash, Nagad, etc.
+  trxId       String   @unique
+  status      String   // PENDING, COMPLETED, FAILED
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
