@@ -25,6 +25,8 @@
   "exclude": [
     "node_modules",
     "dist",
-    "admin-panel"
+    "admin-panel",
+    "scripts",
+    "*.ts"
   ]
 }
