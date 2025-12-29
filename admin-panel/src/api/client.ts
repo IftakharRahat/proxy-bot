@@ -4,7 +4,15 @@ import axios from 'axios';
 // TODO: Use environment variable for API URL in production
 export const api = axios.create({
     baseURL: 'http://localhost:3000',
-    // withCredentials: true, // simplified for local dev, enable if using cookies/sessions
+});
+
+// Add request interceptor to include token
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 // User API
