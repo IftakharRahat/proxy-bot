@@ -5,6 +5,8 @@
     "test",
     "dist",
     "**/*spec.ts",
-    "admin-panel"
+    "admin-panel",
+    "scripts",
+    "*.ts"
   ]
 }
