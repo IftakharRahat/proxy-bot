@@ -5,31 +5,38 @@ const prisma = new PrismaClient();
 
 async function main() {
     const adminUsername = 'admin';
-    const adminPassword = 'adminpassword'; // Change this in production
+    const adminPassword = 'admin123';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const adminTelegramId = 'admin_placeholder';
 
-    const existingAdmin = await prisma.user.findFirst({
-        where: { role: UserRole.ADMIN },
+    console.log('Seeding admin user...');
+
+    // Upsert using the UNIQUE field: telegramId
+    const user = await prisma.user.upsert({
+        where: { telegramId: adminTelegramId },
+        update: {
+            username: adminUsername,
+            password: hashedPassword,
+            role: UserRole.ADMIN,
+        },
+        create: {
+            telegramId: adminTelegramId,
+            username: adminUsername,
+            password: hashedPassword,
+            role: UserRole.ADMIN,
+        },
     });
 
-    if (!existingAdmin) {
-        console.log('Seeding default admin user...');
-        await prisma.user.create({
-            data: {
-                telegramId: 'admin_placeholder', // Placeholder since it's required and unique
-                username: adminUsername,
-                // password: hashedPassword, // User model doesn't have password yet!
-                role: UserRole.ADMIN,
-            },
-        });
-        console.log('Admin seeded. Note: User model needs password field!');
-    } else {
-        console.log('Admin already exists.');
-    }
+    console.log(`Admin user successfully seeded/updated.`);
+    console.log(`Username: ${adminUsername}`);
+    console.log(`Password: ${adminPassword}`);
 }
 
 main()
-    .catch((e) => console.error(e))
+    .catch((e) => {
+        console.error(e);
+        process.exit(1);
+    })
     .finally(async () => {
         await prisma.$disconnect();
     });
