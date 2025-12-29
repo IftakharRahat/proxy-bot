@@ -1,123 +1,198 @@
-import { useEffect, useState } from 'react';
-import { getActiveSessions, api } from '../api/client';
-import { Server, Clock, RefreshCw, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '../api/client';
+import { Globe, RefreshCw, Zap, Clock, ShieldCheck, Database, LayoutGrid, List } from 'lucide-react';
+import clsx from 'clsx';
 
 export const ProxiesPage = () => {
-    const [sessions, setSessions] = useState<any[]>([]);
+    const [proxies, setProxies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [updatingId, setUpdatingId] = useState<number | null>(null);
-    const countries = ['US', 'Canada', 'UK', 'Germany', 'France'];
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    const fetchSessions = async () => {
+    const fetchProxies = async () => {
         try {
-            const data = await getActiveSessions();
-            setSessions(data);
-        } finally {
+            const res = await api.get('/admin/proxies');
+            setProxies(res.data);
             setLoading(false);
+        } catch (err) {
+            console.error('Failed to fetch proxies', err);
         }
     };
 
     useEffect(() => {
-        fetchSessions();
+        fetchProxies();
     }, []);
 
-    const handleChangeCountry = async (sessionId: number, newCountry: string) => {
+    const handleChangeCountry = async (id: number) => {
         try {
-            setUpdatingId(sessionId);
-            await api.patch(`/admin/proxies/${sessionId}/change-country`, { newCountry });
-            fetchSessions();
-            alert(`Changed country to ${newCountry}`);
-        } catch (error: any) {
-            console.error('Failed to change country:', error);
-            alert(`Failed: ${error.response?.data?.message || error.message}`);
-        } finally {
-            setUpdatingId(null);
+            await api.post(`/admin/proxies/${id}/change-country`);
+            alert('Country change initiated');
+            fetchProxies();
+        } catch (err) {
+            alert('Failed to change country');
         }
     };
 
-    const handleRotate = async (sessionId: number) => {
+    const handleRotate = async (id: number) => {
         try {
-            await api.post(`/admin/proxies/${sessionId}/rotate`, {});
-            fetchSessions();
-            alert('IP Rotated');
-        } catch (error) {
-            console.error('Rotation failed', error);
+            await api.post(`/admin/proxies/${id}/rotate`);
+            alert('Rotation successful');
+            fetchProxies();
+        } catch (err) {
+            alert('Failed to rotate proxy');
         }
     };
 
-    if (loading) return <div className="text-white p-6">Loading active proxies...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-400 rounded-full animate-spin" />
+                <p className="text-slate-400 font-bold animate-pulse">Scanning Global Node Network...</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-6">Active Proxies</h2>
-
-            {sessions.length === 0 ? (
-                <div className="text-gray-500 bg-gray-800/50 p-6 rounded-xl border border-gray-700 text-center">
-                    No active proxy sessions found.
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div>
+                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                        <Database className="text-blue-500" size={32} />
+                        Active Proxy Cluster
+                    </h1>
+                    <p className="text-slate-500 mt-1 font-medium italic text-sm">Monitoring real-time traffic routing and node geographical distribution.</p>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions.map((session) => (
-                        <div key={session.id} className="bg-gray-800 rounded-xl border border-gray-700 p-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
-                                        <Server size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-white uppercase">{session.port?.country || 'N/A'} Proxy</h3>
-                                        <p className="text-xs text-gray-500">{session.port?.protocol || 'HTTP'}</p>
-                                    </div>
-                                </div>
-                                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                                    Active
-                                </span>
-                            </div>
+                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={clsx("p-2 rounded-xl transition-all", viewMode === 'grid' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-white")}
+                    >
+                        <LayoutGrid size={18} />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={clsx("p-2 rounded-xl transition-all", viewMode === 'list' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-white")}
+                    >
+                        <List size={18} />
+                    </button>
+                </div>
+            </header>
 
-                            <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded inline-flex">
-                                <Zap size={14} />
-                                <span>{Math.floor(Math.random() * 5) + 1} Live Connections</span>
-                            </div>
+            {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {proxies.map((proxy) => (
+                        <div key={proxy.id} className="glass-card rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500">
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-600/10 blur-2xl group-hover:bg-blue-600/20 transition-all" />
 
-                            <div className="space-y-2 text-sm text-gray-400 bg-gray-900/50 p-3 rounded-lg font-mono">
-                                <div className="flex justify-between">
-                                    <span>Host:</span>
-                                    <span className="text-white">{session.port?.host}:{session.port?.port}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>User:</span>
-                                    <span className="text-white truncate max-w-[120px]" title={session.username}>{session.username}</span>
-                                </div>
-                            </div>
-
-                            <div className="pt-2 flex items-center justify-between border-t border-gray-700">
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-2 text-xs text-orange-400">
-                                        <Clock size={14} />
-                                        <span>Expires: {new Date(session.expiresAt).toLocaleDateString()}</span>
+                            <div className="relative z-10 space-y-6">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-white/10 shadow-inner">
+                                            <Globe size={20} className="text-blue-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Geographical Node</p>
+                                            <h3 className="text-lg font-black text-white uppercase tracking-tight">{proxy.country || 'Global'}</h3>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-gray-500 uppercase">Country:</span>
-                                        <select
-                                            className="bg-gray-900 border border-gray-700 text-[10px] text-white rounded px-1 outline-none"
-                                            value={session.port?.country || ''}
-                                            disabled={updatingId === session.id}
-                                            onChange={(e) => handleChangeCountry(session.id, e.target.value)}
-                                        >
-                                            {countries.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Live</span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleRotate(session.id)}
-                                    className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                    title="Rotate IP Now"
-                                >
-                                    <RefreshCw size={16} className={updatingId === session.id ? 'animate-spin' : ''} />
-                                </button>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Terminal Link</p>
+                                        <p className="text-xs font-mono text-slate-300">@{proxy.user?.username || 'root_access'}</p>
+                                    </div>
+                                    <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Expiration</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock size={12} className="text-slate-500" />
+                                            <p className="text-xs font-bold text-slate-300">{new Date(proxy.expiresAt).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-4 border-t border-white/5">
+                                    <button
+                                        onClick={() => handleChangeCountry(proxy.id)}
+                                        className="w-full flex items-center justify-between px-6 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-xs font-black text-slate-200 uppercase tracking-widest transition-all group/btn"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Globe size={14} className="text-blue-400 group-hover/btn:rotate-12 transition-transform" />
+                                            Migrate Node
+                                        </div>
+                                        <Zap size={14} className="text-slate-600 group-hover/btn:text-amber-400" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleRotate(proxy.id)}
+                                        className="w-full flex items-center justify-between px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-2xl text-xs font-black text-white uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-700" />
+                                            Rotate Protocol
+                                        </div>
+                                        <ShieldCheck size={14} className="text-blue-200" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
+                </div>
+            ) : (
+                <div className="glass-card rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                                <th className="px-8 py-5">Node Context</th>
+                                <th className="px-8 py-5">Substrate Link</th>
+                                <th className="px-8 py-5">Lease Term</th>
+                                <th className="px-8 py-5 text-center">Operations</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.02]">
+                            {proxies.map((proxy) => (
+                                <tr key={proxy.id} className="hover:bg-white/[0.01] transition-all group">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-white/5">
+                                                <Globe size={16} className="text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-white uppercase tracking-tight">{proxy.country || 'Global'}</p>
+                                                <p className="text-[10px] text-slate-500 font-black tracking-widest">SECURE_TUNNEL_01</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-sm font-mono text-slate-400 italic">
+                                        @{proxy.user?.username || 'system_service'}
+                                    </td>
+                                    <td className="px-8 py-6 font-bold text-slate-300 text-sm">
+                                        {new Date(proxy.expiresAt).toLocaleString()}
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <button
+                                                onClick={() => handleChangeCountry(proxy.id)}
+                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-blue-400 transition-all"
+                                                title="Migrate Node"
+                                            >
+                                                <Globe size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleRotate(proxy.id)}
+                                                className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-500/20"
+                                                title="Rotate Protocol"
+                                            >
+                                                <RefreshCw size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

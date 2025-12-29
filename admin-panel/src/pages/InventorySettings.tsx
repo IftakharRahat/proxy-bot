@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { Settings, Zap, Shield, Save, Package, RefreshCcw } from 'lucide-react';
 
 interface PackageConfig {
     name: string;
@@ -62,26 +63,57 @@ export const InventorySettings: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="p-8">Loading settings...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-400 rounded-full animate-spin" />
+                <p className="text-slate-400 font-bold animate-pulse">Synchronizing Inventory Heuristics...</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="p-8 space-y-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-6">Inventory Settings</h1>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <header>
+                <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                    <Package className="text-blue-500" size={32} />
+                    Node Inventory & Logistics
+                </h1>
+                <p className="text-slate-500 mt-1 font-medium italic text-sm">Configure automated procurement and manual node fulfillment parameters.</p>
+            </header>
 
             {/* Section 1: Package Slot Configuration */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-xl font-semibold mb-4">1. Package Slot Configuration</h2>
-                <p className="text-gray-500 mb-6 text-sm">Define how many users can share a single port in each package.</p>
+            <section className="glass-card p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-3xl rounded-full" />
 
-                <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                        <Settings className="text-blue-400" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-white italic tracking-tight uppercase">Slot Allotment & Logic</h2>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">Define multi-tenant occupancy limits per node.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {configs.map((pkg) => (
-                        <div key={pkg.name} className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
-                            <div className="flex-1">
-                                <span className="font-medium text-lg">{pkg.name} Package</span>
+                        <div key={pkg.name} className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 group hover:border-white/10 transition-all">
+                            <div className="flex items-center justify-between mb-6">
+                                <span className={clsx(
+                                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                    pkg.name === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                                        pkg.name === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
+                                            "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                )}>
+                                    {pkg.name} Tier
+                                </span>
+                                <Zap className="text-slate-700 group-hover:text-amber-400 transition-colors" size={16} />
                             </div>
-                            <div className="flex items-center space-x-4">
-                                <div className="flex items-center">
-                                    <span className="mr-2 text-sm text-gray-600">Max Users:</span>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Max Capacity</label>
                                     <input
                                         type="number"
                                         disabled={pkg.name === 'High'}
@@ -90,16 +122,32 @@ export const InventorySettings: React.FC = () => {
                                             const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, maxUsers: parseInt(e.target.value) } : c);
                                             setConfigs(newConfigs);
                                         }}
-                                        className={`border rounded px-3 py-1 w-20 text-center ${pkg.name === 'High' ? 'bg-gray-100 italic' : 'bg-white'}`}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all"
                                     />
-                                    {pkg.name === 'High' && <span className="ml-2 text-xs text-blue-500">(Fixed)</span>}
+                                    {pkg.name === 'High' && <p className="text-[10px] text-yellow-500/60 mt-2 italic">* Immutable tier: 1 user/port</p>}
                                 </div>
+
+                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                    <span className="text-xs font-bold text-slate-400 italic">Auto-Buy Shell</span>
+                                    <button
+                                        onClick={() => handleUpdateConfig(pkg.name, { autoBuyEnabled: !pkg.autoBuyEnabled })}
+                                        className={clsx(
+                                            "w-12 h-6 rounded-full p-1 transition-all",
+                                            pkg.autoBuyEnabled ? "bg-blue-600" : "bg-white/10"
+                                        )}
+                                    >
+                                        <div className={clsx(
+                                            "w-4 h-4 bg-white rounded-full shadow-lg transition-transform",
+                                            pkg.autoBuyEnabled ? "translate-x-6" : "translate-x-0"
+                                        )} />
+                                    </button>
+                                </div>
+
                                 <button
                                     onClick={() => handleUpdateConfig(pkg.name, { maxUsers: pkg.maxUsers })}
-                                    disabled={pkg.name === 'High'}
-                                    className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                                    className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
                                 >
-                                    Save
+                                    <Save size={14} /> Commit Changes
                                 </button>
                             </div>
                         </div>
@@ -107,108 +155,71 @@ export const InventorySettings: React.FC = () => {
                 </div>
             </section>
 
-            {/* Section 2: Individual Auto-Buy Settings */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-xl font-semibold mb-4">2. Individual Auto-Buy Settings</h2>
-                <p className="text-gray-500 mb-6 text-sm">Control automatic port purchasing for each package tier.</p>
+            {/* Section 2: Manual Node Procurement */}
+            <section className="glass-card p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-600/5 blur-3xl rounded-full" />
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b">
-                                <th className="pb-3 font-medium">Package</th>
-                                <th className="pb-3 font-medium text-center">Auto-Buy Status</th>
-                                <th className="pb-3 font-medium">Default Duration</th>
-                                <th className="pb-3 font-medium text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {configs.map((pkg) => (
-                                <tr key={pkg.name} className="border-b last:border-0">
-                                    <td className="py-4 font-medium">{pkg.name}</td>
-                                    <td className="py-4 text-center">
-                                        <button
-                                            onClick={() => handleUpdateConfig(pkg.name, { autoBuyEnabled: !pkg.autoBuyEnabled })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${pkg.autoBuyEnabled ? 'bg-green-600' : 'bg-gray-200'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${pkg.autoBuyEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                        <span className="block text-[10px] mt-1 uppercase font-bold text-gray-400">
-                                            {pkg.autoBuyEnabled ? 'ON' : 'OFF'}
-                                        </span>
-                                    </td>
-                                    <td className="py-4">
-                                        <select
-                                            value={pkg.autoBuyDuration}
-                                            onChange={(e) => handleUpdateConfig(pkg.name, { autoBuyDuration: e.target.value })}
-                                            className="border rounded px-2 py-1 bg-white"
-                                        >
-                                            <option>1 Day</option>
-                                            <option>7 Days</option>
-                                            <option>30 Days</option>
-                                        </select>
-                                    </td>
-                                    <td className="py-4 text-center">
-                                        <button
-                                            onClick={() => fetchConfigs()}
-                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                        >
-                                            Update
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20">
+                        <Shield className="text-purple-400" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-white italic tracking-tight uppercase">Manual Node Procurement</h2>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">Force inject nodes into the network manually.</p>
+                    </div>
                 </div>
-            </section>
 
-            {/* Section 3: Manual Stock Refill */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-xl font-semibold mb-4">3. Manual Stock Refill</h2>
-                <p className="text-gray-500 mb-6 text-sm">Instantly buy ports from Novproxy and add them to your available inventory.</p>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Select Package</label>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tier Protocol</label>
                         <select
                             value={refillPkg}
                             onChange={(e) => setRefillPkg(e.target.value)}
-                            className="w-full border rounded px-3 py-2 bg-white"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all appearance-none"
                         >
-                            <option>High</option>
-                            <option>Medium</option>
-                            <option>Normal</option>
+                            <option value="Normal">Normal Node</option>
+                            <option value="Medium">Medium Node</option>
+                            <option value="High">High Static Node</option>
                         </select>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Duration</label>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Lease Quantum</label>
                         <select
                             value={refillDuration}
                             onChange={(e) => setRefillDuration(e.target.value)}
-                            className="w-full border rounded px-3 py-2 bg-white"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all appearance-none"
                         >
-                            <option>1 Day</option>
-                            <option>7 Days</option>
-                            <option>30 Days</option>
+                            <option value="1 Day">24 Hour Cycle</option>
+                            <option value="7 Days">Weekly Cycle</option>
+                            <option value="30 Days">Monthly Cycle</option>
                         </select>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Quantity</label>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Node Count</label>
                         <input
                             type="number"
-                            min="1"
                             value={refillQty}
-                            onChange={(e) => setRefillQty(parseInt(e.target.value) || 1)}
-                            className="w-full border rounded px-3 py-2 bg-white"
+                            onChange={(e) => setRefillQty(parseInt(e.target.value))}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all"
+                            min="1"
                         />
                     </div>
+
                     <button
                         onClick={handleManualRefill}
                         disabled={refillLoading}
-                        className="w-full bg-black text-white px-3 py-2 rounded font-bold hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                        className="h-[52px] bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-purple-500/20 flex items-center justify-center gap-3 disabled:opacity-50 group active:scale-95"
                     >
-                        {refillLoading ? 'Processing...' : 'Buy & Add to Stock'}
+                        {refillLoading ? (
+                            <RefreshCcw className="animate-spin" size={18} />
+                        ) : (
+                            <>
+                                <RefreshCcw className="group-hover:rotate-180 transition-transform duration-700" size={18} />
+                                Execute Procurement
+                            </>
+                        )}
                     </button>
                 </div>
             </section>

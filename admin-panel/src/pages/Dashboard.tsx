@@ -1,93 +1,132 @@
-import { Users, Server, BadgeDollarSign, Activity } from 'lucide-react';
+import { Users, Server, BadgeDollarSign, Activity, TrendingUp, ArrowUpRight } from 'lucide-react';
+import clsx from 'clsx';
 
-const StatCard = ({ title, value, subtext, icon: Icon, color }: any) => (
-    <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-        <div className="flex items-start justify-between">
+const StatCard = ({ title, value, subtext, icon: Icon, color, glow }: any) => (
+    <div className="glass-card p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
+        <div className={clsx("absolute -top-10 -right-10 w-32 h-32 opacity-10 blur-2xl transition-opacity group-hover:opacity-20", glow)} />
+
+        <div className="flex items-start justify-between relative z-10">
             <div>
-                <p className="text-gray-400 text-sm font-medium">{title}</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{value}</h3>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{title}</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                    <h3 className="text-3xl font-black text-white italic tracking-tight">{value}</h3>
+                    {subtext.includes('+') && <span className="text-[10px] font-bold text-green-400 flex items-center gap-0.5"><TrendingUp size={10} />{subtext.split(' ')[0]}</span>}
+                </div>
             </div>
-            <div className={`p-3 rounded-lg ${color} bg-opacity-20`}>
+            <div className={clsx("p-4 rounded-2xl bg-opacity-20 shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3", color, glow.replace('glow-', 'shadow-'))}>
                 <Icon size={24} className={color.replace('bg-', 'text-')} />
             </div>
         </div>
-        <p className="text-gray-500 text-xs mt-4">{subtext}</p>
+        <p className="text-slate-500 text-[10px] mt-6 font-medium italic border-t border-white/5 pt-4">{subtext}</p>
     </div>
 );
 
 export const Dashboard = () => {
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <header className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-black text-white tracking-tight">Executive Overview</h1>
+                    <p className="text-slate-500 mt-1 font-medium italic text-sm">Real-time heuristics and node performance analytics.</p>
+                </div>
+                <div className="flex gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse mt-2" />
+                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest leading-none">Live Data Stream</span>
+                </div>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <StatCard
-                    title="Total Users"
+                    title="Total Population"
                     value="1,234"
-                    subtext="+12% from last month"
+                    subtext="+12% activity surge"
                     icon={Users}
                     color="bg-blue-500"
+                    glow="glow-blue"
                 />
                 <StatCard
-                    title="Active Proxies"
+                    title="Active Node Links"
                     value="856"
-                    subtext="85% utilization rate"
+                    subtext="85% capacity utilized"
                     icon={Server}
                     color="bg-green-500"
+                    glow="glow-green"
                 />
                 <StatCard
-                    title="Revenue (30d)"
+                    title="Gross Revenue"
                     value="৳45,200"
-                    subtext="+8% from last month"
+                    subtext="+8% quarterly growth"
                     icon={BadgeDollarSign}
                     color="bg-purple-500"
+                    glow="glow-purple"
                 />
                 <StatCard
-                    title="Server Health"
+                    title="Node Integrity"
                     value="99.9%"
-                    subtext="All systems operational"
+                    subtext="All systems optimized"
                     icon={Activity}
                     color="bg-orange-500"
+                    glow="glow-orange"
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
-                    <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 glass-card rounded-[2.5rem] p-10 border border-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-transparent opacity-30" />
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-xl font-black text-white tracking-tight italic">Pulse: Recent Transactions</h3>
+                        <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-blue-300 transition-colors flex items-center gap-1">
+                            View Audit Log <ArrowUpRight size={12} />
+                        </button>
+                    </div>
+                    <div className="space-y-2">
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                        <BadgeDollarSign size={18} className="text-blue-400" />
+                            <div key={i} className="flex items-center justify-between p-5 hover:bg-white/[0.02] rounded-3xl transition-all group cursor-pointer border border-transparent hover:border-white/5">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                                        <BadgeDollarSign size={20} className="text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="font-medium">Topup Balance</p>
-                                        <p className="text-xs text-gray-500">User #10{i} • bKash</p>
+                                        <p className="font-bold text-slate-200">Terminal Balance Topup</p>
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-0.5">User #10{i} • secure gateway</p>
                                     </div>
                                 </div>
-                                <span className="font-bold text-green-400">+৳500</span>
+                                <div className="flex flex-col items-end">
+                                    <span className="font-black text-green-400 text-lg italic">+৳500</span>
+                                    <span className="text-[10px] text-slate-600 font-bold">SUCCESS</span>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4">System Status</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-400">PostgreSQL Database</span>
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Operational</span>
+                <div className="glass-card rounded-[2.5rem] p-10 border border-white/5 relative">
+                    <h3 className="text-xl font-black text-white tracking-tight italic mb-8">Node Health Index</h3>
+                    <div className="space-y-6">
+                        {[
+                            { label: 'PostgreSQL Substrate', status: 'Optimal', color: 'text-green-400' },
+                            { label: 'Redis Cache Cluster', status: 'Optimal', color: 'text-green-400' },
+                            { label: 'Telegram Interface', status: 'Optimal', color: 'text-green-400' },
+                            { label: 'Novproxy API Bridge', status: 'Optimal', color: 'text-green-400' },
+                            { label: 'BullMQ Job Processor', status: 'Standby', color: 'text-blue-400' }
+                        ].map((node, i) => (
+                            <div key={i} className="flex items-center justify-between group">
+                                <span className="text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{node.label}</span>
+                                <div className="flex items-center gap-2">
+                                    <div className={clsx("w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px]", node.color.replace('text-', 'bg-'))} />
+                                    <span className={clsx("text-[10px] font-black uppercase tracking-widest", node.color)}>{node.status}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-12 bg-white/[0.03] rounded-3xl p-6 border border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Memory</span>
+                            <span className="text-xs font-black text-white">42%</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-400">Redis Queue</span>
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Operational</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-400">Telegram Bot</span>
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Operational</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-400">Novproxy API</span>
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Operational</span>
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-0.5">
+                            <div className="h-full w-[42%] bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                         </div>
                     </div>
                 </div>
