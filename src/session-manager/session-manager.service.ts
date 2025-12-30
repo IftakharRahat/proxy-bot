@@ -101,6 +101,23 @@ export class SessionManagerService {
             });
         });
 
+        // Sync credentials with Novproxy
+        try {
+            await this.novproxy.batchEditPorts(
+                [portId],
+                {
+                    username: session.proxyUser,
+                    password: session.proxyPass,
+                    region: session.port.country,
+                    minute: session.rotationPeriod,
+                }
+            );
+            this.logger.log(`Credential sync successful for Port ${portId}`);
+        } catch (error) {
+            this.logger.error(`Failed to sync credentials with Novproxy for Port ${portId}: ${error.message}`);
+            // Note: We don't rollback the session creation here, but in production you might want to
+        }
+
         this.logger.log(`Session created: User ${userId} -> Port ${portId}, expires ${expiresAt}`);
 
         return {
@@ -176,27 +193,40 @@ export class SessionManagerService {
         // Generate new credentials
         const newCredentials = this.generateSessionCredentials(session.userId, session.portId);
 
-        // Call Novproxy API to update credentials (this effectively rotates IP)
-        // Note: In real implementation, you'd call batchEditPorts with the port's Novproxy ID
-        // For now, we just update our local credentials
+        // Call Novproxy API to update credentials
+        try {
+            await this.novproxy.batchEditPorts(
+                [session.portId],
+                {
+                    username: newCredentials.username,
+                    password: newCredentials.password,
+                    region: session.port.country,
+                    minute: session.rotationPeriod,
+                }
+            );
+            this.logger.log(`Novproxy sync successful for session ${sessionId}`);
 
-        const updated = await this.prisma.proxySession.update({
-            where: { id: sessionId },
-            data: {
-                proxyUser: newCredentials.username,
-                proxyPass: newCredentials.password,
-                lastRotatedAt: new Date(),
-            },
-        });
+            const updated = await this.prisma.proxySession.update({
+                where: { id: sessionId },
+                data: {
+                    proxyUser: newCredentials.username,
+                    proxyPass: newCredentials.password,
+                    lastRotatedAt: new Date(),
+                },
+            });
 
-        this.logger.log(`IP rotated for session ${sessionId}`);
+            this.logger.log(`IP rotated for session ${sessionId}`);
 
-        return {
-            sessionId: updated.id,
-            username: updated.proxyUser,
-            password: updated.proxyPass,
-            lastRotatedAt: updated.lastRotatedAt,
-        };
+            return {
+                sessionId: updated.id,
+                username: updated.proxyUser,
+                password: updated.proxyPass,
+                lastRotatedAt: updated.lastRotatedAt,
+            };
+        } catch (error) {
+            this.logger.error(`Failed to sync rotation with Novproxy: ${error.message}`);
+            throw error;
+        }
     }
 
     /**
