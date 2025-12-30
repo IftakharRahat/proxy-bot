@@ -140,3 +140,11 @@ model BotPricing {
 
   @@unique([tier, duration])
 }
+
+model BalancePreset {
+  id        Int      @id @default(autoincrement())
+  amount    Int      @unique
+  label     String   // e.g. "৳500"
+  isActive  Boolean  @default(true)
+  displayOrder Int   @default(0)
+}

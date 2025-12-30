@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, Post, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Post, Param, UseGuards, Query, Delete } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -70,5 +70,22 @@ export class AdminController {
     @Patch('bot-pricing')
     async updateBotPricing(@Body() body: { prices: { tier: string; duration: string; price: number }[] }) {
         return this.adminService.updateAllBotPricing(body.prices);
+    }
+
+    // ========== BALANCE PRESETS (BOT BUTTONS) ==========
+
+    @Get('balance-presets')
+    async getBalancePresets() {
+        return this.adminService.getBalancePresets();
+    }
+
+    @Post('balance-presets')
+    async addBalancePreset(@Body() body: { amount: number }) {
+        return this.adminService.addBalancePreset(body.amount);
+    }
+
+    @Delete('balance-presets/:id')
+    async deleteBalancePreset(@Param('id') id: string) {
+        return this.adminService.deleteBalancePreset(parseInt(id, 10));
     }
 }

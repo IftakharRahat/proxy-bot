@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Settings, Save, DollarSign, Package, AlertCircle } from 'lucide-react';
+import { Settings, Save, DollarSign, Package, AlertCircle, Trash2, Plus } from 'lucide-react';
 import clsx from 'clsx';
 
 interface BotPrice {
@@ -16,9 +16,46 @@ export const SettingsPage: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // Balance Presets State
+    const [presets, setPresets] = useState<any[]>([]);
+    const [newPresetAmount, setNewPresetAmount] = useState('');
+
     useEffect(() => {
         fetchPricing();
+        fetchPresets();
     }, []);
+
+    const fetchPresets = async () => {
+        try {
+            const res = await api.get('/admin/balance-presets');
+            setPresets(res.data);
+        } catch (err) {
+            console.error('Failed to fetch presets', err);
+        }
+    };
+
+    const handleAddPreset = async () => {
+        if (!newPresetAmount) return;
+        try {
+            await api.post('/admin/balance-presets', { amount: parseInt(newPresetAmount) });
+            setNewPresetAmount('');
+            fetchPresets();
+            setMessage({ type: 'success', text: 'Button added successfully' });
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Failed to add button' });
+        }
+    };
+
+    const handleDeletePreset = async (id: number) => {
+        if (!window.confirm('Are you sure?')) return;
+        try {
+            await api.delete(`/admin/balance-presets/${id}`);
+            fetchPresets();
+            setMessage({ type: 'success', text: 'Button removed' });
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Failed to remove button' });
+        }
+    };
 
     const fetchPricing = async () => {
         try {
@@ -155,6 +192,64 @@ export const SettingsPage: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            </section>
+
+            {/* Balance Buttons Configuration */}
+            <section className="glass-card p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                        <DollarSign className="text-emerald-400" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-white italic tracking-tight uppercase">Top-Up Buttons</h2>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">Manage the "Add Balance" options in the bot</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* List */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Current Buttons</h3>
+                        <div className="space-y-3">
+                            {presets.map((preset) => (
+                                <div key={preset.id} className="flex items-center justify-between p-3 bg-slate-950/30 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                                    <span className="font-bold text-emerald-400 text-lg">{preset.label}</span>
+                                    <button
+                                        onClick={() => handleDeletePreset(preset.id)}
+                                        className="p-2 hover:bg-red-500/20 rounded-lg text-slate-500 hover:text-red-400 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Add New */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-fit">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Add New Button</h3>
+                        <div className="flex gap-3">
+                            <div className="relative flex-1">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">৳Amount</span>
+                                <input
+                                    type="number"
+                                    value={newPresetAmount}
+                                    onChange={(e) => setNewPresetAmount(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-20 pr-4 text-white font-bold text-sm outline-none focus:border-emerald-500/50 transition-all"
+                                    placeholder="e.g. 500"
+                                />
+                            </div>
+                            <button
+                                onClick={handleAddPreset}
+                                className="px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold uppercase text-xs tracking-widest transition-all"
+                            >
+                                <Plus size={20} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

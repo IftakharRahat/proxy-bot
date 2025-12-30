@@ -454,16 +454,30 @@ export class BotUpdateService {
         const user = await this.ensureUser(ctx);
         if (!user) return;
 
+        // Fetch presets dynamically
+        const presets = await this.prisma.balancePreset.findMany({
+            where: { isActive: true },
+            orderBy: { displayOrder: 'asc' },
+        });
+
+        // If no presets, fallback to defaults (or seed them)
+        const buttons = [];
+        if (presets.length > 0) {
+            presets.forEach(p => {
+                buttons.push([Markup.button.callback(p.label, `pay_${p.amount}`)]);
+            });
+        } else {
+            // Fallback
+            buttons.push([Markup.button.callback('৳100', 'pay_100')]);
+            buttons.push([Markup.button.callback('৳500', 'pay_500')]);
+        }
+
+        buttons.push([Markup.button.callback('⬅️ Back', 'start')]);
+
         await ctx.replyWithHTML(
             `💰 <b>Add Balance</b>\n\n` +
             `Choose amount to add:`,
-            Markup.inlineKeyboard([
-                [Markup.button.callback('৳10', 'pay_10')],
-                [Markup.button.callback('৳100', 'pay_100')],
-                [Markup.button.callback('৳500', 'pay_500')],
-                [Markup.button.callback('৳1000', 'pay_1000')],
-                [Markup.button.callback('⬅️ Back', 'start')],
-            ]),
+            Markup.inlineKeyboard(buttons),
         );
 
         await (ctx as any).answerCbQuery();

@@ -313,4 +313,74 @@ export class AdminService {
             });
         }
     }
+
+    // ========== MANUAL BALANCE MANAGEMENT ==========
+
+    async addBalance(userId: number, amount: number) {
+        return this.prisma.$transaction(async (tx) => {
+            const user = await tx.user.update({
+                where: { id: userId },
+                data: { balance: { increment: amount } },
+            });
+
+            const trxId = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+            await tx.transaction.create({
+                data: {
+                    userId,
+                    amount: amount,
+                    currency: 'BDT',
+                    gateway: 'MANUAL',
+                    trxId: trxId,
+                    status: 'COMPLETED',
+                },
+            });
+
+            return { success: true, newBalance: user.balance, trxId };
+        });
+    }
+
+    // ========== BALANCE PRESETS (BOT BUTTONS) ==========
+
+    async getBalancePresets() {
+        const presets = await this.prisma.balancePreset.findMany({
+            orderBy: { displayOrder: 'asc' },
+        });
+
+        if (presets.length === 0) {
+            await this.seedDefaultBalancePresets();
+            return this.prisma.balancePreset.findMany({
+                orderBy: { displayOrder: 'asc' },
+            });
+        }
+        return presets;
+    }
+
+    async addBalancePreset(amount: number) {
+        const label = `৳${amount}`;
+        return this.prisma.balancePreset.create({
+            data: {
+                amount,
+                label,
+                displayOrder: amount,
+            },
+        });
+    }
+
+    async deleteBalancePreset(id: number) {
+        return this.prisma.balancePreset.delete({
+            where: { id },
+        });
+    }
+
+    private async seedDefaultBalancePresets() {
+        const defaults = [10, 50, 100, 500, 1000];
+        for (const amt of defaults) {
+            await this.prisma.balancePreset.upsert({
+                where: { amount: amt },
+                create: { amount: amt, label: `৳${amt}`, displayOrder: amt },
+                update: {},
+            });
+        }
+    }
 }
