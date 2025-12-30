@@ -20,18 +20,34 @@ export const InventorySettings: React.FC = () => {
     const [refillQty, setRefillQty] = useState(1);
     const [refillLoading, setRefillLoading] = useState(false);
     const [showInvoice, setShowInvoice] = useState(false);
+    const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+    const [isEstimating, setIsEstimating] = useState(false);
 
-    // Dynamic Pricing Logic (Approximate, based on Novproxy rates)
-    const calculateCost = () => {
-        let baseRate = 1.0; // Normal rate
-        if (refillPkg === 'Medium') baseRate = 1.5;
-        if (refillPkg === 'High') baseRate = 2.5;
-
-        let durationMultiplier = 1.0;
-        if (refillDuration === '7 Days') durationMultiplier = 6.0; // Bulk discount for week
-        if (refillDuration === '30 Days') durationMultiplier = 20.0; // Bulk discount for month
-
-        return (refillQty * baseRate * durationMultiplier).toFixed(2);
+    const handlePreview = async () => {
+        setIsEstimating(true);
+        setShowInvoice(true);
+        try {
+            const res = await api.get('/admin/estimate', {
+                params: {
+                    tier: refillPkg,
+                    duration: refillDuration,
+                    quantity: refillQty,
+                }
+            });
+            setEstimatedCost(res.data.totalCost);
+        } catch (err) {
+            console.error('Estimation failed', err);
+            // Fallback to local calculation if API fails
+            let baseRate = 1.0;
+            if (refillPkg === 'Medium') baseRate = 1.5;
+            if (refillPkg === 'High') baseRate = 2.5;
+            let durationMultiplier = 1.0;
+            if (refillDuration === '7 Days') durationMultiplier = 6.0;
+            if (refillDuration === '30 Days') durationMultiplier = 20.0;
+            setEstimatedCost(Number((refillQty * baseRate * durationMultiplier).toFixed(2)));
+        } finally {
+            setIsEstimating(false);
+        }
     };
 
     const fetchConfigs = async () => {
@@ -223,10 +239,10 @@ export const InventorySettings: React.FC = () => {
                     </div>
 
                     <button
-                        onClick={() => setShowInvoice(true)}
+                        onClick={handlePreview}
                         className="h-[52px] bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-3 active:scale-95 group"
                     >
-                        <RefreshCcw className="group-hover:rotate-180 transition-transform duration-700 text-purple-400" size={18} />
+                        <RefreshCcw className={clsx("group-hover:rotate-180 transition-transform duration-700 text-purple-400", isEstimating && "animate-spin")} size={18} />
                         Preview Invoice
                     </button>
                 </div>
@@ -263,16 +279,25 @@ export const InventorySettings: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center py-6">
                                 <span className="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Total Estimated Cost</span>
-                                <span className="text-4xl font-black text-white leading-none tracking-tighter">
-                                    <span className="text-blue-500 text-xl mr-1">$</span>
-                                    {calculateCost()}
-                                </span>
+                                <div className="text-right">
+                                    {isEstimating ? (
+                                        <div className="flex items-center gap-2 animate-pulse">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+                                            <span className="text-slate-500 text-xs font-black uppercase">Fetching API Rates...</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-4xl font-black text-white leading-none tracking-tighter">
+                                            <span className="text-blue-500 text-xl mr-1">$</span>
+                                            {estimatedCost}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         <div className="bg-blue-500/5 rounded-[2rem] p-6 border border-blue-500/10 mb-10">
-                            <p className="text-blue-400 text-[10px] leading-relaxed font-bold italic">
-                                * Note: Actual cost from Novproxy may vary slightly based on real-time market liquidity and Tier availability.
+                            <p className="text-blue-400 text-[10px] leading-relaxed font-bold italic text-center">
+                                * Note: This price is dynamically calculated by parsing your recent Novproxy order history for maximum accuracy.
                             </p>
                         </div>
 

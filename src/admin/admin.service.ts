@@ -196,4 +196,25 @@ export class AdminService {
             return { success: false, msg: error.message };
         }
     }
+
+    async getProcurementEstimate(tier: string, duration: string, quantity: number) {
+        const unitPrice = await this.novproxyService.getEstimatedUnitPrice();
+
+        let tierMultiplier = 1.0;
+        if (tier === 'Medium') tierMultiplier = 1.5;
+        if (tier === 'High') tierMultiplier = 2.5;
+
+        let durationMultiplier = 1.0;
+        if (duration === '7 Days') durationMultiplier = 6.0;
+        if (duration === '30 Days') durationMultiplier = 20.0;
+
+        const totalCost = Number((quantity * unitPrice * tierMultiplier * durationMultiplier).toFixed(2));
+
+        return {
+            unitPrice,
+            totalCost,
+            currency: 'USD',
+            isEstimated: true,
+        };
+    }
 }

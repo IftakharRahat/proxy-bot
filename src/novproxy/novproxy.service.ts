@@ -144,6 +144,35 @@ export class NovproxyService {
     }
 
     /**
+     * Get the estimated unit price based on the most recent order history
+     */
+    async getEstimatedUnitPrice(): Promise<number> {
+        try {
+            const res = await this.getOrderList(1, 5);
+            if (res.code === 0 && res.data && res.data.length > 0) {
+                // Find a decent order to estimate from
+                // Order name usually looks like "1Ports", "10Ports", etc.
+                for (const order of res.data) {
+                    const match = order.name.match(/(\d+)Ports/);
+                    if (match && order.value > 0) {
+                        const qty = parseInt(match[1], 10);
+                        if (qty > 0) {
+                            const unitPrice = order.value / qty;
+                            this.logger.log(`Estimated Unit Price from Order History: $${unitPrice} (from order ${order.id})`);
+                            return unitPrice;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            this.logger.warn(`Failed to estimate unit price from history: ${error.message}`);
+        }
+
+        // Default fallback if no history or parsing fails
+        return 1.0;
+    }
+
+    /**
      * Batch edit port settings (username, password, region, rotation)
      */
     async batchEditPorts(

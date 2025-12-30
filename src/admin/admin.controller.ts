@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, Post, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Post, Param, UseGuards, Query } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -38,6 +38,15 @@ export class AdminController {
     @Post('refill')
     async refill(@Body() body: { packageType: string; duration: string; quantity: number }) {
         return this.adminService.manualRefill(body.packageType, body.duration, body.quantity);
+    }
+
+    @Get('estimate')
+    async getEstimate(
+        @Query('tier') tier: string,
+        @Query('duration') duration: string,
+        @Query('quantity') quantity: string,
+    ) {
+        return this.adminService.getProcurementEstimate(tier, duration, parseInt(quantity, 10));
     }
 
     @Patch('proxies/:id/change-country')
