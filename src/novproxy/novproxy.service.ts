@@ -145,31 +145,37 @@ export class NovproxyService {
 
     /**
      * Get the estimated unit price based on the most recent order history
+     * Returns price per port for the full duration (not per day)
      */
-    async getEstimatedUnitPrice(): Promise<number> {
+    async getEstimatedUnitPrice(): Promise<{ pricePerPort: number; source: string }> {
         try {
-            const res = await this.getOrderList(1, 5);
+            const res = await this.getOrderList(1, 10);
             if (res.code === 0 && res.data && res.data.length > 0) {
-                // Find a decent order to estimate from
-                // Order name usually looks like "1Ports", "10Ports", etc.
+                // Find the most recent order with valid data
                 for (const order of res.data) {
                     const match = order.name.match(/(\d+)Ports/);
                     if (match && order.value > 0) {
                         const qty = parseInt(match[1], 10);
                         if (qty > 0) {
-                            const unitPrice = order.value / qty;
-                            this.logger.log(`Estimated Unit Price from Order History: $${unitPrice} (from order ${order.id})`);
-                            return unitPrice;
+                            const pricePerPort = order.value / qty;
+                            this.logger.log(`Real Price from Novproxy: $${pricePerPort}/port (Order ID: ${order.id}, Total: $${order.value} for ${qty} ports)`);
+                            return {
+                                pricePerPort,
+                                source: `Novproxy Order #${order.id}`,
+                            };
                         }
                     }
                 }
             }
         } catch (error) {
-            this.logger.warn(`Failed to estimate unit price from history: ${error.message}`);
+            this.logger.warn(`Failed to fetch price from Novproxy: ${error.message}`);
         }
 
-        // Default fallback if no history or parsing fails
-        return 1.0;
+        // Default fallback if no history
+        return {
+            pricePerPort: 0.80, // Conservative estimate
+            source: 'Default Estimate',
+        };
     }
 
     /**

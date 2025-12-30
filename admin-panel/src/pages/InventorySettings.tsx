@@ -22,6 +22,7 @@ export const InventorySettings: React.FC = () => {
     const [showInvoice, setShowInvoice] = useState(false);
     const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
     const [isEstimating, setIsEstimating] = useState(false);
+    const [priceSource, setPriceSource] = useState<string>('');
     const [refillCountry, setRefillCountry] = useState('US');
     const [refillRotation, setRefillRotation] = useState(30);
 
@@ -37,6 +38,7 @@ export const InventorySettings: React.FC = () => {
                 }
             });
             setEstimatedCost(res.data.totalCost);
+            setPriceSource(res.data.source || 'Novproxy API');
         } catch (err) {
             console.error('Estimation failed', err);
             // Fallback to local calculation if API fails
@@ -328,7 +330,11 @@ export const InventorySettings: React.FC = () => {
 
                         <div className="bg-blue-500/5 rounded-[2rem] p-6 border border-blue-500/10 mb-10">
                             <p className="text-blue-400 text-[10px] leading-relaxed font-bold italic text-center">
-                                * Note: This price is dynamically calculated by parsing your recent Novproxy order history for maximum accuracy.
+                                {priceSource ? (
+                                    <>✓ Price Source: <span className="text-green-400">{priceSource}</span></>
+                                ) : (
+                                    '* Fetching real-time rates from Novproxy...'
+                                )}
                             </p>
                         </div>
 

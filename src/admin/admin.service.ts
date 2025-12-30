@@ -218,23 +218,33 @@ export class AdminService {
     }
 
     async getProcurementEstimate(tier: string, duration: string, quantity: number) {
-        const unitPrice = await this.novproxyService.getEstimatedUnitPrice();
+        // Fetch REAL pricing from user's Novproxy order history
+        // This reflects the actual account plan/rates, not website prices
+        const pricing = await this.novproxyService.getEstimatedUnitPrice();
 
-        let tierMultiplier = 1.0;
-        if (tier === 'Medium') tierMultiplier = 1.5;
-        if (tier === 'High') tierMultiplier = 2.5;
+        // Duration in days
+        const daysMap: Record<string, number> = {
+            '1 Day': 1,
+            '7 Days': 7,
+            '30 Days': 30,
+        };
+        const days = daysMap[duration] || 1;
 
-        let durationMultiplier = 1.0;
-        if (duration === '7 Days') durationMultiplier = 6.0;
-        if (duration === '30 Days') durationMultiplier = 20.0;
-
-        const totalCost = Number((quantity * unitPrice * tierMultiplier * durationMultiplier).toFixed(2));
+        // The pricePerPort from history is for 30 days (most recent order)
+        // Scale proportionally for other durations
+        const priceFor30Days = pricing.pricePerPort;
+        const pricePerDay = priceFor30Days / 30;
+        const unitPrice = Number((pricePerDay * days).toFixed(2));
+        const totalCost = Number((quantity * unitPrice).toFixed(2));
 
         return {
             unitPrice,
             totalCost,
             currency: 'USD',
-            isEstimated: true,
+            isEstimated: pricing.source.includes('Default'),
+            source: pricing.source,
+            perDayRate: Number(pricePerDay.toFixed(4)),
+            days,
         };
     }
 }
