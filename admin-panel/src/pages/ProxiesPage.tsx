@@ -77,7 +77,23 @@ export const ProxiesPage = () => {
                 </div>
             </header>
 
-            {viewMode === 'grid' ? (
+            {proxies.length === 0 ? (
+                <div className="glass-card rounded-[3rem] p-20 border border-white/5 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
+                    <div className="w-24 h-24 rounded-[2rem] bg-white/[0.02] border border-white/10 flex items-center justify-center mb-8 relative group">
+                        <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Database size={40} className="text-slate-700 relative z-10" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-3 italic">No Active Nodes Detected</h2>
+                    <p className="text-slate-500 max-w-md font-medium text-sm leading-relaxed">
+                        The global cluster is currently idle. Once proxies are purchased via the Telegram bot or manually procured, they will appear here in real-time.
+                    </p>
+                    <div className="mt-8 flex gap-4">
+                        <div className="h-px w-12 bg-blue-500/30 self-center" />
+                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">System Standby</span>
+                        <div className="h-px w-12 bg-blue-500/30 self-center" />
+                    </div>
+                </div>
+            ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {proxies.map((proxy) => (
                         <div key={proxy.id} className="glass-card rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500">
@@ -91,7 +107,7 @@ export const ProxiesPage = () => {
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Geographical Node</p>
-                                            <h3 className="text-lg font-black text-white uppercase tracking-tight">{proxy.country || 'Global'}</h3>
+                                            <h3 className="text-lg font-black text-white uppercase tracking-tight">{proxy.port?.country || 'Global'}</h3>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
@@ -160,7 +176,7 @@ export const ProxiesPage = () => {
                                                 <Globe size={16} className="text-blue-400" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-white uppercase tracking-tight">{proxy.country || 'Global'}</p>
+                                                <p className="font-bold text-white uppercase tracking-tight">{proxy.port?.country || 'Global'}</p>
                                                 <p className="text-[10px] text-slate-500 font-black tracking-widest">SECURE_TUNNEL_01</p>
                                             </div>
                                         </div>
@@ -195,6 +211,7 @@ export const ProxiesPage = () => {
                     </table>
                 </div>
             )}
+
         </div>
     );
 };

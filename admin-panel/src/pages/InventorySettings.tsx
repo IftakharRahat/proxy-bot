@@ -19,6 +19,20 @@ export const InventorySettings: React.FC = () => {
     const [refillDuration, setRefillDuration] = useState('1 Day');
     const [refillQty, setRefillQty] = useState(1);
     const [refillLoading, setRefillLoading] = useState(false);
+    const [showInvoice, setShowInvoice] = useState(false);
+
+    // Dynamic Pricing Logic (Approximate, based on Novproxy rates)
+    const calculateCost = () => {
+        let baseRate = 1.0; // Normal rate
+        if (refillPkg === 'Medium') baseRate = 1.5;
+        if (refillPkg === 'High') baseRate = 2.5;
+
+        let durationMultiplier = 1.0;
+        if (refillDuration === '7 Days') durationMultiplier = 6.0; // Bulk discount for week
+        if (refillDuration === '30 Days') durationMultiplier = 20.0; // Bulk discount for month
+
+        return (refillQty * baseRate * durationMultiplier).toFixed(2);
+    };
 
     const fetchConfigs = async () => {
         try {
@@ -202,28 +216,79 @@ export const InventorySettings: React.FC = () => {
                         <input
                             type="number"
                             value={refillQty}
-                            onChange={(e) => setRefillQty(parseInt(e.target.value))}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all"
+                            onChange={(e) => setRefillQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all font-mono"
                             min="1"
                         />
                     </div>
 
                     <button
-                        onClick={handleManualRefill}
-                        disabled={refillLoading}
-                        className="h-[52px] bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-purple-500/20 flex items-center justify-center gap-3 disabled:opacity-50 group active:scale-95"
+                        onClick={() => setShowInvoice(true)}
+                        className="h-[52px] bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-3 active:scale-95 group"
                     >
-                        {refillLoading ? (
-                            <RefreshCcw className="animate-spin" size={18} />
-                        ) : (
-                            <>
-                                <RefreshCcw className="group-hover:rotate-180 transition-transform duration-700" size={18} />
-                                Execute Procurement
-                            </>
-                        )}
+                        <RefreshCcw className="group-hover:rotate-180 transition-transform duration-700 text-purple-400" size={18} />
+                        Preview Invoice
                     </button>
                 </div>
             </section>
+
+            {/* Invoice Preview Modal */}
+            {showInvoice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="glass-card w-full max-w-lg rounded-[3rem] p-10 border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-500">
+                        <div className="absolute top-0 right-0 p-8">
+                            <button onClick={() => setShowInvoice(false)} className="text-slate-500 hover:text-white transition-colors uppercase text-[10px] font-black tracking-widest">Close [Esc]</button>
+                        </div>
+
+                        <header className="mb-10">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-white/10 mb-6">
+                                <Shield className="text-purple-400" size={32} />
+                            </div>
+                            <h2 className="text-3xl font-black text-white italic tracking-tight uppercase">Procurement Invoice</h2>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Ref: INV-PROC-{Date.now().toString().slice(-6)}</p>
+                        </header>
+
+                        <div className="space-y-6 mb-10">
+                            <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                <span className="text-slate-400 text-sm font-bold italic">Resource Tier</span>
+                                <span className="text-white font-black uppercase tracking-tight">{refillPkg} Cluster</span>
+                            </div>
+                            <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                <span className="text-slate-400 text-sm font-bold italic">Duration</span>
+                                <span className="text-white font-black uppercase tracking-tight">{refillDuration}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                <span className="text-slate-400 text-sm font-bold italic">Quantity</span>
+                                <span className="text-white font-black uppercase tracking-tight">{refillQty} Units</span>
+                            </div>
+                            <div className="flex justify-between items-center py-6">
+                                <span className="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Total Estimated Cost</span>
+                                <span className="text-4xl font-black text-white leading-none tracking-tighter">
+                                    <span className="text-blue-500 text-xl mr-1">$</span>
+                                    {calculateCost()}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-500/5 rounded-[2rem] p-6 border border-blue-500/10 mb-10">
+                            <p className="text-blue-400 text-[10px] leading-relaxed font-bold italic">
+                                * Note: Actual cost from Novproxy may vary slightly based on real-time market liquidity and Tier availability.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                handleManualRefill();
+                                setShowInvoice(false);
+                            }}
+                            disabled={refillLoading}
+                            className="w-full py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-2xl text-xs font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 active:scale-[0.98]"
+                        >
+                            {refillLoading ? <RefreshCcw className="animate-spin" /> : "Confirm & Execute Order"}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

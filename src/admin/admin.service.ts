@@ -159,7 +159,35 @@ export class AdminService {
                     orderId: res.data?.order_id?.toString(),
                 });
 
-                return { success: true, msg: 'Refill successful', data: res.data };
+                // --- NEW: Sync Ports immediately after purchase ---
+                logger.log(`Purchase successful (Order: ${res.data?.order_id}). Syncing ports...`);
+                const portList = await this.novproxyService.getPortsList(1, 100, res.data?.order_id?.toString());
+
+                if (portList.code === 0 && portList.data?.list) {
+                    for (const port of portList.data.list) {
+                        await this.prisma.port.upsert({
+                            where: { id: port.id },
+                            create: {
+                                id: port.id,
+                                host: port.ip,
+                                port: port.port,
+                                country: port.region || 'Unknown',
+                                protocol: 'HTTP',
+                                packageType: packageType, // Store which package this port belongs to
+                                maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
+                                isActive: true,
+                            },
+                            update: {
+                                host: port.ip,
+                                port: port.port,
+                                country: port.region,
+                                isActive: true,
+                            },
+                        });
+                    }
+                }
+
+                return { success: true, msg: `Refill successful. ${quantity} ports added to ${packageType} pool.`, data: res.data };
             } else {
                 throw new Error(res.msg || 'Novproxy API Error');
             }
