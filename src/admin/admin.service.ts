@@ -175,13 +175,12 @@ export class AdminService {
                     // Apply country and rotation settings via batch_edit
                     if (portIds.length > 0) {
                         logger.log(`Applying settings: Country=${country}, Rotation=${rotation}min to ${portIds.length} ports`);
-                        await this.novproxyService.batchEditPorts(
-                            portIds,
-                            undefined, // Don't change username
-                            undefined, // Don't change password
-                            country,
-                            rotation
-                        );
+                        await this.novproxyService.batchEditPorts(portIds, {
+                            username: portList.data.list[0]?.username || 'proxyuser',
+                            password: portList.data.list[0]?.password || 'proxypass',
+                            region: country,
+                            minute: rotation,
+                        });
                     }
 
                     // Save to local database
