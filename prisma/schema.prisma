@@ -45,6 +45,7 @@ model User {
   referrals   User[]   @relation("UserReferrals")
 }
 
+model Port {
   id          Int          @id @default(autoincrement())
   host        String       // VPS IP for Shared, Provider IP for Dedicated
   port        Int          // Local VPS Port for Shared, Provider Port for Dedicated
