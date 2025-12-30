@@ -458,6 +458,7 @@ export class BotUpdateService {
             `💰 <b>Add Balance</b>\n\n` +
             `Choose amount to add:`,
             Markup.inlineKeyboard([
+                [Markup.button.callback('৳10', 'pay_10')],
                 [Markup.button.callback('৳100', 'pay_100')],
                 [Markup.button.callback('৳500', 'pay_500')],
                 [Markup.button.callback('৳1000', 'pay_1000')],
