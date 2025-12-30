@@ -25,7 +25,7 @@ export class AdminController {
     @Patch('packages/:name')
     async updatePackage(
         @Param('name') name: string,
-        @Body() body: { maxUsers?: number; autoBuyEnabled?: boolean; autoBuyDuration?: string },
+        @Body() body: { maxUsers?: number; autoBuyEnabled?: boolean; autoBuyDuration?: number },
     ) {
         return this.adminService.updatePackageConfig(name, body);
     }

@@ -22,15 +22,14 @@ export class AutoProcurementService {
         this.logger.log(`Checking inventory for ${tier} (${country})...`);
 
         // 1. Check if any slots available
-        // We look for ports of this tier & country that have space
-        const available = await this.prisma.port.count({
+        const ports = await this.prisma.port.findMany({
             where: {
                 isActive: true,
                 packageType: tier,
-                country: country, // Strict check? Or variations?
-                currentUsers: { lt: (this.prisma.port as any).fields.maxUsers },
+                country: country,
             },
         });
+        const available = ports.filter(p => p.currentUsers < p.maxUsers).length;
 
         if (available > 0) {
             this.logger.log(`Slots available (${available}), no refill needed.`);
@@ -47,7 +46,7 @@ export class AutoProcurementService {
         this.logger.log(`Auto-buy triggered for ${tier}. Duration: ${config.autoBuyDuration} days.`);
 
         // 3. Execute Purchase
-        return this.executeAutoBuy(tier, country, config.autoBuyDuration);
+        return this.executeAutoBuy(tier, country, Number(config.autoBuyDuration));
     }
 
     private async executeAutoBuy(tier: string, country: string, durationDays: number): Promise<boolean> {

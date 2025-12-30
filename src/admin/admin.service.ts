@@ -71,7 +71,7 @@ export class AdminService {
         return configs;
     }
 
-    async updatePackageConfig(name: string, data: { maxUsers?: number; autoBuyEnabled?: boolean; autoBuyDuration?: string }) {
+    async updatePackageConfig(name: string, data: { maxUsers?: number; autoBuyEnabled?: boolean; autoBuyDuration?: number }) {
         return this.prisma.packageConfig.update({
             where: { name },
             data,
@@ -106,14 +106,14 @@ export class AdminService {
         if (!session) throw new Error('Session not found');
 
         // 2. Find a new port in the target country
-        const newPort = await this.prisma.port.findFirst({
+        const availablePorts = await this.prisma.port.findMany({
             where: {
                 country: newCountry,
                 isActive: true,
-                currentUsers: { lt: (this.prisma.port as any).fields.maxUsers },
                 packageType: session.port.packageType,
             },
         });
+        const newPort = availablePorts.find(p => p.currentUsers < p.maxUsers);
 
         if (!newPort) throw new Error(`No available ports in ${newCountry} for this package`);
 

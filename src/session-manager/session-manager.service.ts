@@ -136,7 +136,6 @@ export class SessionManagerService {
 
         return {
             sessionId: session.id,
-            sessionId: session.id,
             host: session.port.host,
             port: session.port.localPort || session.port.port, // Use localPort for shared if available
             username: session.proxyUser,
