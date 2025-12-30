@@ -5,6 +5,7 @@ import { UsersPage } from './pages/UsersPage';
 import { ProxiesPage } from './pages/ProxiesPage';
 import { InventorySettings } from './pages/InventorySettings';
 import { PurchaseHistory } from './pages/PurchaseHistory';
+import { SettingsPage } from './pages/SettingsPage';
 import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -22,7 +23,7 @@ function App() {
             <Route path="inventory" element={<InventorySettings />} />
             <Route path="purchases" element={<PurchaseHistory />} />
             <Route path="transactions" element={<div className="p-4">Transactions Page (Coming Soon)</div>} />
-            <Route path="settings" element={<div className="p-4">Settings Page (Coming Soon)</div>} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

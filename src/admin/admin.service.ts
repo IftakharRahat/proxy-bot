@@ -247,4 +247,70 @@ export class AdminService {
             days,
         };
     }
+
+    // ========== BOT PRICING CONFIGURATION ==========
+
+    async getBotPricing() {
+        const pricing = await this.prisma.botPricing.findMany({
+            orderBy: [{ tier: 'asc' }, { duration: 'asc' }],
+        });
+
+        // If no pricing exists, seed defaults
+        if (pricing.length === 0) {
+            await this.seedDefaultBotPricing();
+            return this.prisma.botPricing.findMany({
+                orderBy: [{ tier: 'asc' }, { duration: 'asc' }],
+            });
+        }
+
+        return pricing;
+    }
+
+    async updateBotPricing(tier: string, duration: string, price: number) {
+        return this.prisma.botPricing.upsert({
+            where: { tier_duration: { tier, duration } },
+            create: { tier, duration, price, currency: 'BDT' },
+            update: { price },
+        });
+    }
+
+    async updateAllBotPricing(prices: { tier: string; duration: string; price: number }[]) {
+        const updates = prices.map(p =>
+            this.prisma.botPricing.upsert({
+                where: { tier_duration: { tier: p.tier, duration: p.duration } },
+                create: { tier: p.tier, duration: p.duration, price: p.price, currency: 'BDT' },
+                update: { price: p.price },
+            })
+        );
+        await this.prisma.$transaction(updates);
+        return { success: true, message: 'All prices updated successfully' };
+    }
+
+    private async seedDefaultBotPricing() {
+        const defaults = [
+            // Normal tier
+            { tier: 'Normal', duration: '24h', price: 50 },
+            { tier: 'Normal', duration: '3d', price: 120 },
+            { tier: 'Normal', duration: '7d', price: 250 },
+            { tier: 'Normal', duration: '30d', price: 800 },
+            // Medium tier
+            { tier: 'Medium', duration: '24h', price: 80 },
+            { tier: 'Medium', duration: '3d', price: 200 },
+            { tier: 'Medium', duration: '7d', price: 400 },
+            { tier: 'Medium', duration: '30d', price: 1200 },
+            // High tier
+            { tier: 'High', duration: '24h', price: 120 },
+            { tier: 'High', duration: '3d', price: 300 },
+            { tier: 'High', duration: '7d', price: 600 },
+            { tier: 'High', duration: '30d', price: 1800 },
+        ];
+
+        for (const d of defaults) {
+            await this.prisma.botPricing.upsert({
+                where: { tier_duration: { tier: d.tier, duration: d.duration } },
+                create: { tier: d.tier, duration: d.duration, price: d.price, currency: 'BDT' },
+                update: {},
+            });
+        }
+    }
 }

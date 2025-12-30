@@ -59,4 +59,16 @@ export class AdminController {
     async changeCountry(@Param('id') id: string, @Body() body: { newCountry: string }) {
         return this.adminService.changeCountry(parseInt(id, 10), body.newCountry);
     }
+
+    // ========== BOT PRICING ENDPOINTS ==========
+
+    @Get('bot-pricing')
+    async getBotPricing() {
+        return this.adminService.getBotPricing();
+    }
+
+    @Patch('bot-pricing')
+    async updateBotPricing(@Body() body: { prices: { tier: string; duration: string; price: number }[] }) {
+        return this.adminService.updateAllBotPricing(body.prices);
+    }
 }

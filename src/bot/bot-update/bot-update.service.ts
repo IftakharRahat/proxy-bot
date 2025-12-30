@@ -7,11 +7,11 @@ import { PaymentService } from '../../payment/payment.service';
 import { UddoktaPayService } from '../../payment/uddoktapay.service';
 
 // Package tiers and pricing
-const PACKAGES = {
-    normal: { name: '🔹 Normal', prices: { '24h': 50, '3d': 120, '7d': 250, '30d': 800 } },
-    medium: { name: '🔸 Medium', prices: { '24h': 80, '3d': 200, '7d': 400, '30d': 1200 } },
-    high: { name: '🔥 High', prices: { '24h': 120, '3d': 300, '7d': 600, '30d': 1800 } },
-};
+// Package tiers and pricing will be fetched dynamically
+interface PackageTier {
+    name: string;
+    prices: Record<string, number>;
+}
 
 const DURATIONS: Record<string, number> = {
     '24h': 24,
@@ -36,16 +36,45 @@ export class BotUpdateService {
     }
 
 
+    async getPackages(): Promise<Record<string, PackageTier>> {
+        const pricing = await this.prisma.botPricing.findMany({
+            where: { isActive: true },
+        });
+
+        // Initialize structure with names
+        const packages: Record<string, PackageTier> = {
+            normal: { name: '🔹 Normal', prices: {} },
+            medium: { name: '🔸 Medium', prices: {} },
+            high: { name: '🔥 High', prices: {} },
+        };
+
+        if (pricing.length > 0) {
+            for (const p of pricing) {
+                const tier = p.tier.toLowerCase();
+                if (packages[tier]) {
+                    packages[tier].prices[p.duration] = Number(p.price);
+                }
+            }
+        } else {
+            // Fallback defaults if DB is empty
+            packages.normal.prices = { '24h': 50, '3d': 120, '7d': 250, '30d': 800 };
+            packages.medium.prices = { '24h': 80, '3d': 200, '7d': 400, '30d': 1200 };
+            packages.high.prices = { '24h': 120, '3d': 300, '7d': 600, '30d': 1800 };
+        }
+
+        return packages;
+    }
 
     @Action(/port_(\d+)_(.+)_(.+)_(.+)/)
     async onPortSelect(@Ctx() ctx: Context) {
         const match = (ctx as any).match;
         const portId = parseInt(match[1], 10);
-        const tier = match[2] as keyof typeof PACKAGES;
+        const tier = match[2] as string;
         const duration = match[3] as '24h' | '3d' | '7d' | '30d';
         const rotation = parseInt(match[4], 10);
 
-        const pkg = PACKAGES[tier];
+        const packages = await this.getPackages();
+        const pkg = packages[tier];
         const price = pkg?.prices[duration];
         const hours = DURATIONS[duration];
 
@@ -188,8 +217,9 @@ export class BotUpdateService {
     @Action(/tier_(.+)/)
     async onTierSelect(@Ctx() ctx: Context) {
         const match = (ctx as any).match;
-        const tier = match[1] as keyof typeof PACKAGES;
-        const pkg = PACKAGES[tier];
+        const tier = match[1] as string;
+        const packages = await this.getPackages();
+        const pkg = packages[tier];
 
         if (!pkg) return;
 
@@ -221,9 +251,10 @@ export class BotUpdateService {
     @Action(/dur_(.+)_(.+)/)
     async onDurationSelect(@Ctx() ctx: Context) {
         const match = (ctx as any).match;
-        const tier = match[1] as keyof typeof PACKAGES;
+        const tier = match[1] as string;
         const duration = match[2] as '24h' | '3d' | '7d' | '30d';
-        const pkg = PACKAGES[tier];
+        const packages = await this.getPackages();
+        const pkg = packages[tier];
         const price = pkg?.prices[duration];
         const hours = DURATIONS[duration];
 
@@ -274,7 +305,7 @@ export class BotUpdateService {
     @Action(/rot_(.+)_(.+)_(.+)/)
     async onRotationSelect(@Ctx() ctx: Context) {
         const match = (ctx as any).match;
-        const tier = match[1] as keyof typeof PACKAGES;
+        const tier = match[1] as string;
         const duration = match[2] as '24h' | '3d' | '7d' | '30d';
         const rotation = parseInt(match[3], 10);
 
@@ -282,7 +313,8 @@ export class BotUpdateService {
     }
 
     private async showPorts(ctx: Context, tier: string, duration: string, rotation: number) {
-        const pkg = PACKAGES[tier as keyof typeof PACKAGES];
+        const packages = await this.getPackages();
+        const pkg = packages[tier];
         const price = pkg?.prices[duration as '24h' | '3d' | '7d' | '30d'];
 
         // Show available ports for this tier (Filtered to US/Canada)

@@ -128,3 +128,15 @@ model Transaction {
 
   user        User     @relation(fields: [userId], references: [id])
 }
+
+model BotPricing {
+  id          Int      @id @default(autoincrement())
+  tier        String   // Normal, Medium, High
+  duration    String   // 24h, 3d, 7d, 30d
+  price       Decimal  // Price in BDT
+  currency    String   @default("BDT")
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tier, duration])
+}
