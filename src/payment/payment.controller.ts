@@ -143,6 +143,45 @@ export class PaymentController {
     }
 
     /**
+     * Manual Verification Trigger (Backup for Webhook)
+     */
+    @Post('uddoktapay/verify-invoice')
+    async verifyUddoktaPayInvoice(@Body() body: { invoice_id: string }) {
+        const { invoice_id } = body;
+
+        // 1. Verify against Gateway
+        const response = await this.uddoktaPayService.verifyPayment(invoice_id);
+
+        if (response && response.status === 'COMPLETED') {
+            const trxId = response.transaction_id || response.invoice_id;
+
+            try {
+                // Same logic as webhook
+                await this.paymentService.createTransaction(
+                    response.metadata.userId,
+                    Number(response.amount),
+                    PaymentGateway.BKASH,
+                    trxId
+                );
+
+                const trx = await this.paymentService.getUserTransactions(response.metadata.userId);
+                const recentTrx = trx.find(t => t.trxId === trxId);
+                if (recentTrx) {
+                    await this.paymentService.verifyTransaction(recentTrx.id);
+                }
+                return { success: true, message: 'Payment verified successfully' };
+            } catch (e) {
+                if (e.message === 'Transaction ID already exists') {
+                    return { success: true, message: 'Transaction already processed' };
+                }
+                throw e;
+            }
+        }
+
+        return { success: false, message: 'Payment not completed' };
+    }
+
+    /**
      * Success Callback (User redirected here after payment)
      */
     @Get('uddoktapay/success')
