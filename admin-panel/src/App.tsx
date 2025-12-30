@@ -6,6 +6,7 @@ import { ProxiesPage } from './pages/ProxiesPage';
 import { InventorySettings } from './pages/InventorySettings';
 import { PurchaseHistory } from './pages/PurchaseHistory';
 import { SettingsPage } from './pages/SettingsPage';
+import { PaymentSuccess } from './pages/PaymentSuccess';
 import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -14,6 +15,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        {/* Public Payment Success Route */}
+        <Route path="/payment/uddoktapay/success" element={<PaymentSuccess />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<MainLayout />}>
