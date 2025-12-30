@@ -79,7 +79,7 @@ export class NovproxyService {
             headers: form.getHeaders(),
         });
 
-        this.logger.log(`buyPort: ${quantity} ports for ${days} days`);
+        this.logger.log(`buyPort Response: ${JSON.stringify(response.data)}`);
         return response.data;
     }
 
