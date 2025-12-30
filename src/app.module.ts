@@ -11,6 +11,8 @@ import { QueueModule } from './queue/queue.module';
 import { PaymentModule } from './payment/payment.module';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { ProxyChainModule } from './proxy-chain/proxy-chain.module';
+import { AutoProcureModule } from './auto-procure/auto-procure.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { AuthModule } from './auth/auth.module';
     AdminModule,
     SessionManagerModule,
     AuthModule,
+    ProxyChainModule,
+    AutoProcureModule,
   ],
   controllers: [AppController],
   providers: [AppService],

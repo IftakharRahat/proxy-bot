@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NovproxyService } from '../novproxy/novproxy.service';
+import { ProxyChainService } from '../proxy-chain/proxy-chain.service';
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
     constructor(
         private prisma: PrismaService,
         private novproxyService: NovproxyService,
+        private proxyChain: ProxyChainService,
+        private configService: ConfigService,
     ) { }
 
     async getAllUsers() {
@@ -133,6 +138,21 @@ export class AdminService {
             });
         });
 
+        // 4. Sync with Novproxy
+        try {
+            await this.novproxyService.batchEditPorts(
+                [newPort.id],
+                {
+                    username: session.proxyUser,
+                    password: session.proxyPass,
+                    region: newPort.country,
+                    minute: session.rotationPeriod,
+                }
+            );
+        } catch (error) {
+            console.error(`Failed to sync with Novproxy after country change: ${error.message}`);
+        }
+
         return { success: true, port: newPort };
     }
 
@@ -156,13 +176,32 @@ export class AdminService {
             const res = await this.novproxyService.buyPort(days, quantity);
 
             if (res.code === 0) {
-                const cost = res.data?.value || (quantity * (duration === '30 Days' ? 0.8 : duration === '7 Days' ? 0.9 : 1.0));
+                const orderId = res.data?.order_id || res.data?.id;
+                let cost = 0;
+
+                // Fetch real cost from order history
+                try {
+                    const orders = await this.novproxyService.getOrderList(1, 20);
+                    if (orders.code === 0 && orders.data) {
+                        const matchedOrder = orders.data.find(o => o.id.toString() === orderId?.toString());
+                        if (matchedOrder) {
+                            cost = matchedOrder.value;
+                            logger.log(`Confirmed real cost from Novproxy: $${cost} for Order #${orderId}`);
+                        }
+                    }
+                } catch (e) {
+                    logger.warn(`Could not fetch real cost for order ${orderId}, using fallback.`);
+                    // Fallback to estimation or 0 if critical
+                    cost = res.data?.value || (quantity * (duration === '30 Days' ? 0.8 : duration === '7 Days' ? 0.9 : 1.0)); // Fallback
+                }
+
+                if (cost === 0) cost = res.data?.value || 0;
 
                 await this.createPurchaseLog({
                     packageType,
                     duration,
                     cost: Number(cost),
-                    orderId: res.data?.order_id?.toString(),
+                    orderId: orderId?.toString(),
                 });
 
                 // --- Sync Ports immediately after purchase ---
@@ -184,26 +223,77 @@ export class AdminService {
                     }
 
                     // Save to local database
+                    // For Shared (Normal/Medium), we need to assign local ports on VPS
+                    let nextLocalPort = 30000;
+                    if (packageType !== 'High') {
+                        const lastPort = await this.prisma.port.findFirst({
+                            where: { localPort: { not: null } },
+                            orderBy: { localPort: 'desc' },
+                        });
+                        if (lastPort?.localPort) nextLocalPort = lastPort.localPort + 1;
+                    }
+
+                    const vpsIp = this.configService.get('VPS_IP') || '127.0.0.1'; // Update this in .env
+
                     for (const port of portList.data.list) {
+                        let localPortVal: number | null = null;
+
+                        // Default to Direct Provider Info
+                        let finalHost = port.ip;
+                        let finalPort = port.port;
+                        let upHost: string | null = null;
+                        let upPort: number | null = null;
+                        let upUser: string | null = null;
+                        let upPass: string | null = null;
+
+                        if (packageType !== 'High') {
+                            // Shared: Use VPS Info
+                            localPortVal = nextLocalPort++;
+                            finalHost = vpsIp;
+                            finalPort = localPortVal;
+
+                            // Save Upstream Info
+                            upHost = port.ip;
+                            upPort = port.port;
+                            upUser = port.username;
+                            upPass = port.password;
+                        }
+
                         await this.prisma.port.upsert({
                             where: { id: port.id },
                             create: {
                                 id: port.id,
-                                host: port.ip,
-                                port: port.port,
+                                host: finalHost,
+                                port: finalPort,
                                 country: country,
                                 protocol: 'HTTP',
                                 packageType: packageType,
                                 maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
                                 isActive: true,
+                                // Hybrid Fields
+                                localPort: localPortVal,
+                                upstreamHost: upHost,
+                                upstreamPort: upPort,
+                                upstreamUser: upUser,
+                                upstreamPass: upPass,
                             },
                             update: {
-                                host: port.ip,
-                                port: port.port,
+                                host: finalHost,
+                                port: finalPort,
                                 country: country,
                                 isActive: true,
+                                localPort: localPortVal, // Update if re-refilling/resetting
+                                upstreamHost: upHost,
+                                upstreamPort: upPort, // Ensure upstream info is also updated
+                                upstreamUser: upUser,
+                                upstreamPass: upPass,
                             },
                         });
+                    }
+
+                    // If shared ports added, rebuild proxy config
+                    if (packageType !== 'High') {
+                        await this.proxyChain.rebuildConfig();
                     }
                 }
 

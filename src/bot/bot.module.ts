@@ -5,6 +5,7 @@ import { BotUpdateService } from './bot-update/bot-update.service';
 import { NovproxyModule } from '../novproxy/novproxy.module';
 import { SessionManagerModule } from '../session-manager/session-manager.module';
 import { PaymentModule } from '../payment/payment.module';
+import { AutoProcureModule } from '../auto-procure/auto-procure.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentModule } from '../payment/payment.module';
     SessionManagerModule,
     NovproxyModule,
     PaymentModule,
+    AutoProcureModule,
   ],
   providers: [BotUpdateService],
 })

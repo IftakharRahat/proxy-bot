@@ -23,12 +23,15 @@ export const ProxiesPage = () => {
     }, []);
 
     const handleChangeCountry = async (id: number) => {
+        const country = prompt('Enter new country code (US or Canada):', 'US');
+        if (!country) return;
+
         try {
-            await api.post(`/admin/proxies/${id}/change-country`);
-            alert('Country change initiated');
+            await api.patch(`/admin/proxies/${id}/change-country`, { newCountry: country }); // Changed from post to patch and added body
+            alert('Country change initiated successfully. New IP will be assigned.');
             fetchProxies();
         } catch (err) {
-            alert('Failed to change country');
+            alert('Failed to change country. Ensure ports are available.');
         }
     };
 
@@ -112,7 +115,9 @@ export const ProxiesPage = () => {
                                     </div>
                                     <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Live</span>
+                                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">
+                                            {proxy.port?.currentUsers || 0} Connected
+                                        </span>
                                     </div>
                                 </div>
 
@@ -196,6 +201,9 @@ export const ProxiesPage = () => {
                                             >
                                                 <Globe size={16} />
                                             </button>
+                                            <span className="text-xs font-mono text-slate-500">
+                                                {proxy.port?.currentUsers || 0} Conns
+                                            </span>
                                             <button
                                                 onClick={() => handleRotate(proxy.id)}
                                                 className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-500/20"

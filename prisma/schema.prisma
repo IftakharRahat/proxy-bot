@@ -45,12 +45,18 @@ model User {
   referrals   User[]   @relation("UserReferrals")
 }
 
-model Port {
   id          Int          @id @default(autoincrement())
-  host        String
-  port        Int
+  host        String       // VPS IP for Shared, Provider IP for Dedicated
+  port        Int          // Local VPS Port for Shared, Provider Port for Dedicated
   protocol    PortProtocol @default(HTTP)
   country     String
+  
+  // Upstream Info (For Shared/Hybrid)
+  upstreamHost String?
+  upstreamPort Int?
+  upstreamUser String?
+  upstreamPass String?
+  localPort    Int?        // The port opened on VPS (3proxy)
   
   packageType String       @default("Normal") // Normal, Medium, High
   
@@ -68,7 +74,7 @@ model PackageConfig {
   name            String   @unique // Normal, Medium, High
   maxUsers        Int      @default(1)
   autoBuyEnabled  Boolean  @default(false)
-  autoBuyDuration String   @default("1 Day") // 1 Day, 7 Days, 30 Days
+  autoBuyDuration Int      @default(30) // Duration in days (e.g. 7, 15, 30)
   updatedAt       DateTime @updatedAt
 }
 

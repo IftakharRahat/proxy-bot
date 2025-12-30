@@ -4,6 +4,7 @@ import { Context, Markup } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionManagerService } from '../../session-manager/session-manager.service';
 import { PaymentService } from '../../payment/payment.service';
+import { AutoProcurementService } from '../../auto-procure/auto-procure.service';
 import { UddoktaPayService } from '../../payment/uddoktapay.service';
 
 // Package tiers and pricing
@@ -30,6 +31,7 @@ export class BotUpdateService {
         private sessionManager: SessionManagerService,
         private paymentService: PaymentService,
         private uddoktaPayService: UddoktaPayService,
+        private autoProcure: AutoProcurementService,
     ) {
         console.log('!!! BotUpdateService CONSTRUCTOR CALLED !!!');
         this.logger.log('BotUpdateService initialized');
@@ -284,11 +286,10 @@ export class BotUpdateService {
                 `How often should your IP address change?`,
                 Markup.inlineKeyboard([
                     [
-                        Markup.button.callback('5 Mins', `rot_${tier}_${duration}_5`),
                         Markup.button.callback('10 Mins', `rot_${tier}_${duration}_10`),
+                        Markup.button.callback('30 Mins', `rot_${tier}_${duration}_30`),
                     ],
                     [
-                        Markup.button.callback('30 Mins', `rot_${tier}_${duration}_30`),
                         Markup.button.callback('60 Mins', `rot_${tier}_${duration}_60`),
                     ],
                     [Markup.button.callback('⬅️ Back', `dur_${tier}_${duration}`)],
@@ -298,8 +299,8 @@ export class BotUpdateService {
             return;
         }
 
-        // Normal/Medium go straight to ports with 30m rotation
-        await this.showPorts(ctx, tier, duration, 30);
+        // Normal/Medium go to Country Selection (Rotation fixed at 30m)
+        await this.askCountrySelection(ctx, tier, duration, 30);
     }
 
     @Action(/rot_(.+)_(.+)_(.+)/)
@@ -309,24 +310,78 @@ export class BotUpdateService {
         const duration = match[2] as '24h' | '3d' | '7d' | '30d';
         const rotation = parseInt(match[3], 10);
 
-        await this.showPorts(ctx, tier, duration, rotation);
+        await this.askCountrySelection(ctx, tier, duration, rotation);
     }
 
-    private async showPorts(ctx: Context, tier: string, duration: string, rotation: number) {
+    private async askCountrySelection(ctx: Context, tier: string, duration: string, rotation: number) {
+        await ctx.replyWithHTML(
+            `🏳️ <b>Select Country</b>\n\n` +
+            `Choose your preferred location:`,
+            Markup.inlineKeyboard([
+                [Markup.button.callback('🇺🇸 United States', `ctry_${tier}_${duration}_${rotation}_US`)],
+                [Markup.button.callback('🇨🇦 Canada', `ctry_${tier}_${duration}_${rotation}_Canada`)],
+                [Markup.button.callback('⬅️ Back', tier === 'high' ? `dur_${tier}_${duration}` : `tier_${tier}`)],
+            ]),
+        );
+        if ('answerCbQuery' in ctx) await (ctx as any).answerCbQuery();
+    }
+
+    @Action(/ctry_(.+)_(.+)_(.+)_(.+)/)
+    async onCountrySelect(@Ctx() ctx: Context) {
+        const match = (ctx as any).match;
+        const tier = match[1] as string;
+        const duration = match[2] as string;
+        const rotation = parseInt(match[3], 10);
+        const country = match[4] as string;
+
+        await this.showPorts(ctx, tier, duration, rotation, country);
+    }
+
+    private async showPorts(ctx: Context, tier: string, duration: string, rotation: number, country: string) {
         const packages = await this.getPackages();
         const pkg = packages[tier];
         const price = pkg?.prices[duration as '24h' | '3d' | '7d' | '30d'];
 
         // Show available ports for this tier (Filtered to US/Canada)
-        const availablePorts = await this.prisma.port.findMany({
+        let availablePorts = await this.prisma.port.findMany({
             where: {
                 isActive: true,
-                currentUsers: { lt: (this.prisma.port as any).fields.maxUsers }, // Cast to avoid IDE error if possible
+                currentUsers: { lt: 5 }, // Hardcoded 5 as maxUsers check is tricky in raw prisma here without join
+                // Better: currentUsers < maxUsers. Prisma doesn't support comparing two columns directly in where easily.
+                // We will filter in memory or rely on 'currentUsers' check logic if simple. 
+                // However, let's stick to the existing logic but refine it.
+                // Actually, the previous code had a syntax that might not work: (this.prisma.port as any).fields.maxUsers
+                // We will just fetch ports that are active and match tier/country.
                 packageType: tier.charAt(0).toUpperCase() + tier.slice(1),
-                country: { in: ['US', 'Canada'] },
+                country: country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] },
             },
-            take: 10,
+            take: 20,
         });
+
+        // Filter for capacity in memory if Prisma limitation exists (comparing col to col)
+        availablePorts = availablePorts.filter(p => p.currentUsers < p.maxUsers);
+
+        if (availablePorts.length === 0) {
+            // TRIGGE AUTO-REFILL
+            const tierCap = tier.charAt(0).toUpperCase() + tier.slice(1);
+            const refilled = await this.autoProcure.checkAndRefill(tierCap, country);
+
+            if (refilled) {
+                // Retry Fetch
+                const newPorts = await this.prisma.port.findMany({
+                    where: {
+                        isActive: true,
+                        packageType: tierCap,
+                        country: country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] },
+                    },
+                    take: 20
+                });
+                availablePorts = newPorts.filter(p => p.currentUsers < p.maxUsers);
+                if (availablePorts.length > 0) {
+                    await ctx.replyWithHTML(`✅ <b>New Stock Added!</b>\nFresh proxies have been procured for you.`);
+                }
+            }
+        }
 
         if (availablePorts.length === 0) {
             await ctx.replyWithHTML(

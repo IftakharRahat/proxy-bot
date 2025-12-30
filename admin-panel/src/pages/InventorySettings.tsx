@@ -7,7 +7,7 @@ interface PackageConfig {
     name: string;
     maxUsers: number;
     autoBuyEnabled: boolean;
-    autoBuyDuration: string;
+    autoBuyDuration: number;
 }
 
 export const InventorySettings: React.FC = () => {
@@ -162,6 +162,26 @@ export const InventorySettings: React.FC = () => {
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all"
                                     />
                                     {pkg.name === 'High' && <p className="text-[10px] text-yellow-500/60 mt-2 italic">* Immutable tier: 1 user/port</p>}
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Auto-Buy Cycle (Days)</label>
+                                    <input
+                                        type="number"
+                                        disabled={!pkg.autoBuyEnabled}
+                                        value={pkg.autoBuyDuration}
+                                        onChange={(e) => {
+                                            const val = Math.max(1, parseInt(e.target.value) || 1);
+                                            const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, autoBuyDuration: val } : c);
+                                            setConfigs(newConfigs);
+                                        }}
+                                        className={clsx(
+                                            "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all",
+                                            !pkg.autoBuyEnabled && "opacity-50 cursor-not-allowed"
+                                        )}
+                                        placeholder="e.g. 7"
+                                    />
+                                    <p className="text-[10px] text-slate-500/60 mt-2 italic">* Duration of new ports</p>
                                 </div>
 
                                 <div className="flex items-center justify-between pt-4 border-t border-white/5">

@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NovproxyService } from '../novproxy/novproxy.service';
+import { ProxyChainService } from '../proxy-chain/proxy-chain.service';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class SessionManagerService {
     constructor(
         private prisma: PrismaService,
         private novproxy: NovproxyService,
+        private proxyChain: ProxyChainService,
     ) { }
 
     /**
@@ -101,29 +103,42 @@ export class SessionManagerService {
             });
         });
 
-        // Sync credentials with Novproxy
+        // Sync credentials
+        // Hybrid Logic:
+        // A. High Tier (Dedicated) -> Direct Provider Sync
+        // B. Normal/Medium (Shared) -> VPS 3proxy Sync
+
         try {
-            await this.novproxy.batchEditPorts(
-                [portId],
-                {
-                    username: session.proxyUser,
-                    password: session.proxyPass,
-                    region: session.port.country,
-                    minute: session.rotationPeriod,
-                }
-            );
-            this.logger.log(`Credential sync successful for Port ${portId}`);
+            if (port.packageType === 'High') {
+                // Direct Sync with Novproxy
+                await this.novproxy.batchEditPorts(
+                    [portId],
+                    {
+                        username: session.proxyUser,
+                        password: session.proxyPass,
+                        region: session.port.country,
+                        minute: session.rotationPeriod,
+                    }
+                );
+                this.logger.log(`Direct Novproxy sync successful for Port ${portId}`);
+            } else {
+                // Shared Port -> Update Local VPS Config
+                // We do NOT change upstream credentials (batchEditPorts) because other users share it.
+                // We just ensure the local proxy allows this new user.
+                await this.proxyChain.rebuildConfig();
+                this.logger.log(`VPS Proxy Chain updated for Port ${portId}`);
+            }
         } catch (error) {
-            this.logger.error(`Failed to sync credentials with Novproxy for Port ${portId}: ${error.message}`);
-            // Note: We don't rollback the session creation here, but in production you might want to
+            this.logger.error(`Failed to sync proxy credentials for Port ${portId}: ${error.message}`);
         }
 
         this.logger.log(`Session created: User ${userId} -> Port ${portId}, expires ${expiresAt}`);
 
         return {
             sessionId: session.id,
+            sessionId: session.id,
             host: session.port.host,
-            port: session.port.port,
+            port: session.port.localPort || session.port.port, // Use localPort for shared if available
             username: session.proxyUser,
             password: session.proxyPass,
             expiresAt: session.expiresAt,
