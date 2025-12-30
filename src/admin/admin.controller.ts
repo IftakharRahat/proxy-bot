@@ -36,8 +36,14 @@ export class AdminController {
     }
 
     @Post('refill')
-    async refill(@Body() body: { packageType: string; duration: string; quantity: number }) {
-        return this.adminService.manualRefill(body.packageType, body.duration, body.quantity);
+    async refill(@Body() body: { packageType: string; duration: string; quantity: number; country?: string; rotation?: number }) {
+        return this.adminService.manualRefill(
+            body.packageType,
+            body.duration,
+            body.quantity,
+            body.country || 'Random',
+            body.rotation || 30
+        );
     }
 
     @Get('estimate')

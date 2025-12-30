@@ -22,6 +22,8 @@ export const InventorySettings: React.FC = () => {
     const [showInvoice, setShowInvoice] = useState(false);
     const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
     const [isEstimating, setIsEstimating] = useState(false);
+    const [refillCountry, setRefillCountry] = useState('US');
+    const [refillRotation, setRefillRotation] = useState(30);
 
     const handlePreview = async () => {
         setIsEstimating(true);
@@ -81,6 +83,8 @@ export const InventorySettings: React.FC = () => {
                 packageType: refillPkg,
                 duration: refillDuration,
                 quantity: refillQty,
+                country: refillCountry,
+                rotation: refillRotation,
             });
             if (res.data.success) {
                 alert('Refill successful!');
@@ -200,7 +204,7 @@ export const InventorySettings: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-6 items-end">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tier Protocol</label>
                         <select
@@ -224,6 +228,33 @@ export const InventorySettings: React.FC = () => {
                             <option value="1 Day">24 Hour Cycle</option>
                             <option value="7 Days">Weekly Cycle</option>
                             <option value="30 Days">Monthly Cycle</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target Region</label>
+                        <select
+                            value={refillCountry}
+                            onChange={(e) => setRefillCountry(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all appearance-none"
+                        >
+                            <option value="US">🇺🇸 United States</option>
+                            <option value="CA">🇨🇦 Canada</option>
+                            <option value="Random">🌍 Random</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">IP Rotation</label>
+                        <select
+                            value={refillRotation}
+                            onChange={(e) => setRefillRotation(parseInt(e.target.value))}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all appearance-none"
+                        >
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="30">30 Minutes</option>
+                            <option value="60">60 Minutes</option>
                         </select>
                     </div>
 

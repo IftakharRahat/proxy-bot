@@ -136,7 +136,13 @@ export class AdminService {
         return { success: true, port: newPort };
     }
 
-    async manualRefill(packageType: string, duration: string, quantity: number) {
+    async manualRefill(
+        packageType: string,
+        duration: string,
+        quantity: number,
+        country: string = 'Random',
+        rotation: number = 30
+    ) {
         const logger = new Logger('AdminService:Refill');
 
         const durationMap: Record<string, number> = {
@@ -159,11 +165,26 @@ export class AdminService {
                     orderId: res.data?.order_id?.toString(),
                 });
 
-                // --- NEW: Sync Ports immediately after purchase ---
+                // --- Sync Ports immediately after purchase ---
                 logger.log(`Purchase successful (Order: ${res.data?.order_id}). Syncing ports...`);
                 const portList = await this.novproxyService.getPortsList(1, 100, res.data?.order_id?.toString());
 
                 if (portList.code === 0 && portList.data?.list) {
+                    const portIds = portList.data.list.map(p => p.id);
+
+                    // Apply country and rotation settings via batch_edit
+                    if (portIds.length > 0) {
+                        logger.log(`Applying settings: Country=${country}, Rotation=${rotation}min to ${portIds.length} ports`);
+                        await this.novproxyService.batchEditPorts(
+                            portIds,
+                            undefined, // Don't change username
+                            undefined, // Don't change password
+                            country,
+                            rotation
+                        );
+                    }
+
+                    // Save to local database
                     for (const port of portList.data.list) {
                         await this.prisma.port.upsert({
                             where: { id: port.id },
@@ -171,23 +192,23 @@ export class AdminService {
                                 id: port.id,
                                 host: port.ip,
                                 port: port.port,
-                                country: port.region || 'Unknown',
+                                country: country,
                                 protocol: 'HTTP',
-                                packageType: packageType, // Store which package this port belongs to
+                                packageType: packageType,
                                 maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
                                 isActive: true,
                             },
                             update: {
                                 host: port.ip,
                                 port: port.port,
-                                country: port.region,
+                                country: country,
                                 isActive: true,
                             },
                         });
                     }
                 }
 
-                return { success: true, msg: `Refill successful. ${quantity} ports added to ${packageType} pool.`, data: res.data };
+                return { success: true, msg: `Refill successful. ${quantity} ports (${country}, ${rotation}m) added to ${packageType} pool.`, data: res.data };
             } else {
                 throw new Error(res.msg || 'Novproxy API Error');
             }
