@@ -715,7 +715,7 @@ export class AdminService {
             this.prisma.user.count(),
             this.prisma.port.count({ where: { currentUsers: { gt: 0 } } }),
             this.prisma.transaction.aggregate({
-                where: { type: 'DEPOSIT', status: 'SUCCESS' },
+                where: { status: 'COMPLETED' },
                 _sum: { amount: true },
             }),
         ]);
@@ -727,7 +727,7 @@ export class AdminService {
         return {
             totalUsers,
             activePorts,
-            totalRevenue: totalRevenueData._sum.amount || 0,
+            totalRevenue: Number(totalRevenueData._sum?.amount || 0),
             nodeIntegrity: `${Math.min(integrity, 99.9).toFixed(1)}%`,
         };
     }
