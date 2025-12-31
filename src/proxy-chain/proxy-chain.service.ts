@@ -84,9 +84,9 @@ proxy -p30000
 
                 // Upstream Chain
                 if (upUser && upPass) {
-                    config += `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
+                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
                 } else {
-                    config += `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}\n`;
+                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort}\n`;
                 }
 
                 // Auth and ACL
