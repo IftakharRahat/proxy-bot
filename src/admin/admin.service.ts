@@ -710,6 +710,28 @@ export class AdminService {
 
     // ========== BALANCE PRESETS (BOT BUTTONS) ==========
 
+    async getDashboardStats() {
+        const [totalUsers, activePorts, totalRevenueData] = await Promise.all([
+            this.prisma.user.count(),
+            this.prisma.port.count({ where: { currentUsers: { gt: 0 } } }),
+            this.prisma.transaction.aggregate({
+                where: { type: 'DEPOSIT', status: 'SUCCESS' },
+                _sum: { amount: true },
+            }),
+        ]);
+
+        // Node integrity estimate (simplistic: active/total)
+        const totalPorts = await this.prisma.port.count();
+        const integrity = totalPorts > 0 ? (activePorts / totalPorts) * 100 : 100;
+
+        return {
+            totalUsers,
+            activePorts,
+            totalRevenue: totalRevenueData._sum.amount || 0,
+            nodeIntegrity: `${Math.min(integrity, 99.9).toFixed(1)}%`,
+        };
+    }
+
     async getBalancePresets() {
         const presets = await this.prisma.balancePreset.findMany({
             orderBy: { displayOrder: 'asc' },

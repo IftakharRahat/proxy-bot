@@ -1,11 +1,25 @@
 import { Controller, Get, Patch, Body, Post, Param, UseGuards, Query, Delete } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { HealthService } from './health.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
-    constructor(private readonly adminService: AdminService) { }
+    constructor(
+        private readonly adminService: AdminService,
+        private readonly healthService: HealthService,
+    ) { }
+
+    @Get('health')
+    async getHealth() {
+        return this.healthService.getSystemHealth();
+    }
+
+    @Get('stats')
+    async getStats() {
+        return this.adminService.getDashboardStats();
+    }
 
     @Get('users')
     async getUsers() {
