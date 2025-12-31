@@ -133,15 +133,16 @@ export const ProxiesPage = () => {
 
                                 <div className="space-y-4">
                                     <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Proxy Endpoint</p>
-                                            <div className="px-2 py-0.5 bg-blue-500/10 rounded text-[8px] font-bold text-blue-400 border border-blue-500/20">
-                                                {proxy.port?.protocol || 'HTTP'}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center bg-blue-500/5 p-2 rounded-xl border border-blue-500/10">
+                                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">HTTP Port</span>
+                                                <p className="text-xs font-mono text-white font-bold">{proxy.port?.host}:{proxy.port?.port}</p>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-purple-500/5 p-2 rounded-xl border border-purple-500/10">
+                                                <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">SOCKS5 Port</span>
+                                                <p className="text-xs font-mono text-white font-bold">{proxy.port?.host}:{(proxy.port?.port || 0) + 5000}</p>
                                             </div>
                                         </div>
-                                        <p className="text-sm font-mono text-white font-bold tracking-tight">
-                                            {proxy.port?.host || '0.0.0.0'}:{proxy.port?.port || '0000'}
-                                        </p>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -191,7 +192,7 @@ export const ProxiesPage = () => {
                         <thead>
                             <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
                                 <th className="px-8 py-5">Node Context</th>
-                                <th className="px-8 py-5">Endpoint (IP:Port)</th>
+                                <th className="px-8 py-5">Endpoints (HTTP / SOCKS5)</th>
                                 <th className="px-8 py-5">Package Tier</th>
                                 <th className="px-8 py-5">Substrate Link</th>
                                 <th className="px-8 py-5">Lease Term</th>
@@ -213,8 +214,9 @@ export const ProxiesPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg font-mono text-[11px] text-blue-400 font-bold inline-block">
-                                            {proxy.port?.host}:{proxy.port?.port}
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] font-mono text-blue-400 font-bold">HTTP: {proxy.port?.host}:{proxy.port?.port}</span>
+                                            <span className="text-[10px] font-mono text-purple-400 font-bold">SOCKS5: {proxy.port?.host}:{(proxy.port?.port || 0) + 5000}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
