@@ -81,14 +81,24 @@ proxy -p30000
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
 
-                // sticky parent will overwrite the previous one
+                // Using 'connect' instead of 'tcp' as it's more reliable for HTTP proxies
                 if (upUser && upPass) {
-                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
+                    config += `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
                 } else {
-                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort}\n`;
+                    config += `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}\n`;
                 }
 
-                config += `proxy -p${port.localPort}\n\n`;
+                // Restore bandwidth limits
+                if (port.packageType === 'Normal') {
+                    config += `bandlimin 125000 * \n`;
+                    config += `bandlimout 125000 * \n`;
+                } else if (port.packageType === 'Medium') {
+                    config += `bandlimin 375000 * \n`;
+                    config += `bandlimout 375000 * \n`;
+                }
+
+                config += `proxy -p${port.localPort}\n`;
+                config += `socks -p${port.localPort + 5000}\n\n`;
             }
         }
 
