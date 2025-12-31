@@ -145,28 +145,46 @@ export const ProxiesPage = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                    <div className="space-y-4">
+                                        <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
                                             <div className="flex justify-between items-center mb-2">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Substrate Proof (Novproxy)</p>
-                                                <div className="px-2 py-0.5 bg-emerald-500/10 rounded text-[8px] font-bold text-emerald-400 border border-emerald-500/20">
-                                                    UPSTREAM
+                                                <div className="flex items-center gap-1.5">
+                                                    <Database size={12} className="text-emerald-400" />
+                                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Source Substrate (Amit's Panel)</p>
+                                                </div>
+                                                <div className="px-2 py-0.5 bg-emerald-500/20 rounded text-[8px] font-black text-emerald-300 border border-emerald-500/30">
+                                                    VERIFIED LINK
                                                 </div>
                                             </div>
-                                            <p className="text-xs font-mono text-emerald-400/80 font-bold truncate">
-                                                {proxy.port?.upstreamHost || 'Direct'}:{proxy.port?.upstreamPort}
+                                            <div className="flex items-baseline gap-2">
+                                                <p className="text-xs font-mono text-white font-bold">
+                                                    {proxy.port?.upstreamHost || 'System Relay'}
+                                                </p>
+                                                <p className="text-[10px] font-mono text-emerald-400 font-bold">
+                                                    PORT: {proxy.port?.upstreamPort || 'AUTO'}
+                                                </p>
+                                            </div>
+                                            <p className="text-[9px] text-emerald-500/60 font-medium mt-1 uppercase tracking-tight">
+                                                {proxy.port?.upstreamHost ? 'Connected to Residential Provider' : 'Direct connection or legacy node'}
                                             </p>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Sharing Cluster</p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {proxy.port?.sessions?.map((s: any, i: number) => (
-                                                        <span key={i} className="text-[9px] font-bold text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10">
-                                                            @{s.user?.username || 'user'}
-                                                        </span>
-                                                    ))}
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                    <Zap size={12} className="text-blue-400" />
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Cluster</p>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1 max-h-[40px] overflow-y-auto">
+                                                    {proxy.port?.sessions?.length > 1 ? (
+                                                        proxy.port.sessions.map((s: any, i: number) => (
+                                                            <span key={i} className="text-[8px] font-bold text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10">
+                                                                @{s.user?.username || 'user'}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-[9px] text-slate-600 font-bold italic">Dedicated to you</span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
