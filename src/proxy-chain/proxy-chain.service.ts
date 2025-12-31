@@ -77,10 +77,10 @@ flush
                 config += `auth strong\n`;
                 config += `# Port ${port.id} (${port.country}) - ${port.packageType}\n`;
 
-                // Allow users assigned to this port + debug user
+                // Allow users assigned to this port + debug user (Comma separated for compatibility)
                 const allowedUsers = port.sessions.map(s => s.proxyUser);
                 allowedUsers.push('test');
-                config += `allow ${allowedUsers.join(' ')}\n`;
+                config += `allow ${allowedUsers.join(',')}\n`;
 
                 // Parent (Upstream)
                 // Syntax: parent <weight> <type> <ip> <port> <user> <pass>
