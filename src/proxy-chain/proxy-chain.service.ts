@@ -53,9 +53,6 @@ nserver 8.8.8.8
 nserver 1.1.1.1
 nscache 65536
 timeouts 1 5 30 60 180 1800 15 60
-setgid 65535
-setuid 65535
-flush
 `;
 
         // 3. Generate 'users' line
@@ -64,25 +61,17 @@ flush
         for (const s of allSessions) {
             userSet.add(`${s.proxyUser}:CL:${s.proxyPass}`);
         }
-
-        // Always add debug user
         userSet.add('test:CL:test');
 
-        config += `users ${Array.from(userSet).join(' ')}\n\n`;
+        config += `users ${Array.from(userSet).join(' ')}\n`;
+        config += `auth strong\n\n`;
 
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
-            // Only convert ports that have upstream info
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
-                config += `auth strong\n`;
                 config += `# Port ${port.id} (${port.country})\n`;
+                config += `allow * \n`;
 
-                // Allow users assigned to this port + debug user
-                const allowedUsers = port.sessions.map(s => s.proxyUser);
-                allowedUsers.push('test');
-                config += `allow ${allowedUsers.join(',')}\n`;
-
-                // Parent (Upstream)
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
 
@@ -92,7 +81,6 @@ flush
                     config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort}\n`;
                 }
 
-                // Proxy (Entry) - Bandwidth Limits
                 if (port.packageType === 'Normal') {
                     config += `bandlimin 125000 * \n`;
                     config += `bandlimout 125000 * \n`;
@@ -102,8 +90,7 @@ flush
                 }
 
                 config += `proxy -p${port.localPort}\n`;
-                config += `socks -p${port.localPort + 5000}\n`;
-                config += `flush\n\n`;
+                config += `socks -p${port.localPort + 5000}\n\n`;
             }
         }
 
