@@ -75,28 +75,24 @@ flush
             // Only convert ports that have upstream info
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
                 config += `auth strong\n`;
-                config += `# Port ${port.id} (${port.country}) - ${port.packageType}\n`;
+                config += `# Port ${port.id} (${port.country})\n`;
 
-                // Allow users assigned to this port + debug user (Comma separated for compatibility)
+                // Allow users assigned to this port + debug user
                 const allowedUsers = port.sessions.map(s => s.proxyUser);
                 allowedUsers.push('test');
                 config += `allow ${allowedUsers.join(',')}\n`;
 
                 // Parent (Upstream)
-                // Syntax: parent <weight> <type> <ip> <port> <user> <pass>
-                // Type tcp=1000
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
 
-                // If upstream has auth
                 if (upUser && upPass) {
                     config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
                 } else {
                     config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort}\n`;
                 }
 
-                // Proxy (Entry)
-                // Traffic Shaping (Bandwidth Limits)
+                // Proxy (Entry) - Bandwidth Limits
                 if (port.packageType === 'Normal') {
                     config += `bandlimin 125000 * \n`;
                     config += `bandlimout 125000 * \n`;
@@ -106,9 +102,8 @@ flush
                 }
 
                 config += `proxy -p${port.localPort}\n`;
-
-                // SOCKS5 Support (Offset by 5000)
-                config += `socks -p${port.localPort + 5000}\n\n`;
+                config += `socks -p${port.localPort + 5000}\n`;
+                config += `flush\n\n`;
             }
         }
 
