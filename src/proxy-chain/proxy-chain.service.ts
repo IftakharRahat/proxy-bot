@@ -54,16 +54,17 @@ nscache 65536
 timeouts 1 5 30 60 180 1800 15 60
 `;
 
-        // 3. Generate 'users' line - GLOBAL
+        // 3. Generate 'users' line string
         const allSessions = sharedPorts.flatMap(p => p.sessions);
         const usersList = ['test:CL:test'];
         for (const s of allSessions) {
             usersList.push(`${s.proxyUser}:CL:${s.proxyPass}`);
         }
-        config += `users ${usersList.join(' ')}\n\n`;
+        const usersLine = `users ${usersList.join(' ')}\n`;
 
         // DIAGNOSTICS: Port 30000 (No Parent)
         config += `# Diagnostics Port\n`;
+        config += usersLine;
         config += `auth strong\n`;
         config += `allow test\n`;
         config += `proxy -p30000\n`;
@@ -72,6 +73,8 @@ timeouts 1 5 30 60 180 1800 15 60
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
+                config += `# Port ${port.id} (${port.country})\n`;
+                config += usersLine;
                 config += `auth strong\n`;
 
                 // Allow specific users
