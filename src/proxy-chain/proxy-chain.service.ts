@@ -92,6 +92,15 @@ auth strong
                 }
 
                 // Proxy (Entry)
+                // Traffic Shaping (Bandwidth Limits)
+                if (port.packageType === 'Normal') {
+                    config += `bandlimin 125000 * \n`;
+                    config += `bandlimout 125000 * \n`;
+                } else if (port.packageType === 'Medium') {
+                    config += `bandlimin 375000 * \n`;
+                    config += `bandlimout 375000 * \n`;
+                }
+
                 config += `proxy -p${port.localPort}\n`;
                 config += `flush\n\n`;
             }
