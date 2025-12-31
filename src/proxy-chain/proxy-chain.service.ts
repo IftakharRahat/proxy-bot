@@ -57,20 +57,21 @@ timeouts 1 5 30 60 180 1800 15 60
 
         // 3. Generate 'users' line
         const allSessions = sharedPorts.flatMap(p => p.sessions);
-        let userSet = new Set<string>();
+        const usersList = ['test:CL:test'];
         for (const s of allSessions) {
-            userSet.add(`${s.proxyUser}:CL:${s.proxyPass}`);
+            usersList.push(`${s.proxyUser}:CL:${s.proxyPass}`);
         }
-        userSet.add('test:CL:test');
 
-        config += `users ${Array.from(userSet).join(' ')}\n`;
-        config += `auth strong\n\n`;
+        config += `users ${usersList.join(' ')}\n\n`;
 
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
-                config += `# Port ${port.id} (${port.country})\n`;
-                config += `allow * \n`;
+                config += `auth strong\n`;
+
+                const allowed = ['test'];
+                port.sessions.forEach(s => allowed.push(s.proxyUser));
+                config += `allow ${allowed.join(',')}\n`;
 
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
@@ -90,7 +91,8 @@ timeouts 1 5 30 60 180 1800 15 60
                 }
 
                 config += `proxy -p${port.localPort}\n`;
-                config += `socks -p${port.localPort + 5000}\n\n`;
+                config += `socks -p${port.localPort + 5000}\n`;
+                config += `flush\n\n`;
             }
         }
 
