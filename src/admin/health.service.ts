@@ -16,13 +16,25 @@ export class HealthService {
     ) { }
 
     async getSystemHealth() {
-        return {
-            proxyServer: await this.check3ProxyStatus(),
-            novproxyApi: await this.checkNovproxyStatus(),
-            database: await this.checkDatabaseStatus(),
-            redis: await this.checkRedisStatus(),
-            telegramBot: 'Optimal', // Placeholder as it's harder to ping webhook state without complex mocking
-        };
+        try {
+            return {
+                proxyServer: await this.check3ProxyStatus(),
+                novproxyApi: await this.checkNovproxyStatus(),
+                database: await this.checkDatabaseStatus(),
+                redis: await this.checkRedisStatus(),
+                telegramBot: 'Optimal',
+            };
+        } catch (error) {
+            this.logger.error(`Health check error: ${error.message}`, error.stack);
+            return {
+                proxyServer: 'Offline',
+                novproxyApi: 'Offline',
+                database: 'Offline',
+                redis: 'Offline',
+                telegramBot: 'Offline',
+                error: error.message
+            };
+        }
     }
 
     private async check3ProxyStatus(): Promise<string> {

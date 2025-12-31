@@ -7,6 +7,8 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
+    private readonly logger = new Logger(AdminService.name);
+
     constructor(
         private prisma: PrismaService,
         private novproxyService: NovproxyService,
@@ -711,25 +713,36 @@ export class AdminService {
     // ========== BALANCE PRESETS (BOT BUTTONS) ==========
 
     async getDashboardStats() {
-        const [totalUsers, activePorts, totalRevenueData] = await Promise.all([
-            this.prisma.user.count(),
-            this.prisma.port.count({ where: { currentUsers: { gt: 0 } } }),
-            this.prisma.transaction.aggregate({
-                where: { status: 'COMPLETED' },
-                _sum: { amount: true },
-            }),
-        ]);
+        try {
+            const [totalUsers, activePorts, totalRevenueData] = await Promise.all([
+                this.prisma.user.count(),
+                this.prisma.port.count({ where: { currentUsers: { gt: 0 } } }),
+                this.prisma.transaction.aggregate({
+                    where: { status: 'COMPLETED' },
+                    _sum: { amount: true },
+                }),
+            ]);
 
-        // Node integrity estimate (simplistic: active/total)
-        const totalPorts = await this.prisma.port.count();
-        const integrity = totalPorts > 0 ? (activePorts / totalPorts) * 100 : 100;
+            // Node integrity estimate (simplistic: active/total)
+            const totalPorts = await this.prisma.port.count();
+            const integrity = totalPorts > 0 ? (activePorts / totalPorts) * 100 : 100;
 
-        return {
-            totalUsers,
-            activePorts,
-            totalRevenue: Number(totalRevenueData._sum?.amount || 0),
-            nodeIntegrity: `${Math.min(integrity, 99.9).toFixed(1)}%`,
-        };
+            return {
+                totalUsers,
+                activePorts,
+                totalRevenue: parseFloat(totalRevenueData._sum?.amount?.toString() || '0'),
+                nodeIntegrity: `${Math.min(integrity, 99.9).toFixed(1)}%`,
+            };
+        } catch (error) {
+            this.logger.error(`Dashboard stats error: ${error.message}`, error.stack);
+            return {
+                totalUsers: 0,
+                activePorts: 0,
+                totalRevenue: 0,
+                nodeIntegrity: '0.0%',
+                error: error.message
+            };
+        }
     }
 
     async getBalancePresets() {
