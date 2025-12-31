@@ -186,7 +186,7 @@ export class AdminService {
                         const matchedOrder = orders.data.find(o => o.id.toString() === orderId?.toString());
                         if (matchedOrder) {
                             cost = matchedOrder.value;
-                            logger.log(`Confirmed real cost from Novproxy: $${cost} for Order #${orderId}`);
+                            logger.log(`Confirmed unit cost from bulk-order history: $${cost} for Order #${orderId}`);
                         }
                     }
                 } catch (e) {
@@ -198,7 +198,7 @@ export class AdminService {
                 if (cost === 0) cost = res.data?.value || 0;
 
                 await this.createPurchaseLog({
-                    packageType,
+                    packageType: `[STOCK ACTIVATION] ${packageType}`,
                     duration,
                     cost: Number(cost),
                     orderId: orderId?.toString(),
@@ -332,7 +332,7 @@ export class AdminService {
             totalCost,
             currency: 'USD',
             isEstimated: pricing.source.includes('Default'),
-            source: pricing.source,
+            source: 'Stock Activation (Bulk Plan)',
             perDayRate: Number(pricePerDay.toFixed(4)),
             days,
         };

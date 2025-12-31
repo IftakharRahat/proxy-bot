@@ -313,8 +313,8 @@ export const InventorySettings: React.FC = () => {
                             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-white/10 mb-6">
                                 <Shield className="text-purple-400" size={32} />
                             </div>
-                            <h2 className="text-3xl font-black text-white italic tracking-tight uppercase">Procurement Invoice</h2>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Ref: INV-PROC-{Date.now().toString().slice(-6)}</p>
+                            <h2 className="text-3xl font-black text-white italic tracking-tight uppercase">Stock Activation Report</h2>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Ref: ACT-PROC-{Date.now().toString().slice(-6)}</p>
                         </header>
 
                         <div className="space-y-6 mb-10">
@@ -331,7 +331,7 @@ export const InventorySettings: React.FC = () => {
                                 <span className="text-white font-black uppercase tracking-tight">{refillQty} Units</span>
                             </div>
                             <div className="flex justify-between items-center py-6">
-                                <span className="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Total Estimated Cost</span>
+                                <span className="text-blue-400 font-black uppercase tracking-[0.2em] text-xs">Warehouse Unit Deduction</span>
                                 <div className="text-right">
                                     {isEstimating ? (
                                         <div className="flex items-center gap-2 animate-pulse">
@@ -340,8 +340,9 @@ export const InventorySettings: React.FC = () => {
                                         </div>
                                     ) : (
                                         <p className="text-4xl font-black text-white leading-none tracking-tighter">
-                                            <span className="text-blue-500 text-xl mr-1">$</span>
-                                            {estimatedCost}
+                                            <span className="text-blue-500 text-sm mr-1">COST:</span>
+                                            ${estimatedCost}
+                                            <span className="text-slate-500 text-[10px] ml-2 tracking-widest">/ {refillQty} UNIT</span>
                                         </p>
                                     )}
                                 </div>
@@ -351,7 +352,7 @@ export const InventorySettings: React.FC = () => {
                         <div className="bg-blue-500/5 rounded-[2rem] p-6 border border-blue-500/10 mb-10">
                             <p className="text-blue-400 text-[10px] leading-relaxed font-bold italic text-center">
                                 {priceSource ? (
-                                    <>✓ Price Source: <span className="text-green-400">{priceSource}</span></>
+                                    <>✓ Method: <span className="text-green-400">Inventory Unit Deduction (Bulk Plan)</span></>
                                 ) : (
                                     '* Fetching real-time rates from Novproxy...'
                                 )}
@@ -366,7 +367,7 @@ export const InventorySettings: React.FC = () => {
                             disabled={refillLoading}
                             className="w-full py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-2xl text-xs font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
-                            {refillLoading ? <RefreshCcw className="animate-spin" /> : "Confirm & Execute Order"}
+                            {refillLoading ? <RefreshCcw className="animate-spin" /> : "Confirm & Activate Stock"}
                         </button>
                     </div>
                 </div>
