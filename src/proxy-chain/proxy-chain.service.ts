@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { exec } from 'child_process';
@@ -8,7 +8,7 @@ import * as util from 'util';
 const execAsync = util.promisify(exec);
 
 @Injectable()
-export class ProxyChainService {
+export class ProxyChainService implements OnModuleInit {
     private readonly logger = new Logger(ProxyChainService.name);
     private configPath: string;
     private reloadCommand: string;
@@ -19,6 +19,11 @@ export class ProxyChainService {
     ) {
         this.configPath = this.configService.get<string>('PROXY_CONFIG_PATH') || '/etc/3proxy/3proxy.cfg';
         this.reloadCommand = this.configService.get<string>('PROXY_RELOAD_COMMAND') || 'systemctl reload 3proxy';
+    }
+
+    async onModuleInit() {
+        this.logger.log('Initializing ProxyChainService... Triggering initial config rebuild.');
+        await this.rebuildConfig();
     }
 
     /**
