@@ -57,12 +57,15 @@ auth strong
         // 3. Generate 'users' line
         // Collect all distinct users from all sessions
         const allSessions = sharedPorts.flatMap(p => p.sessions);
+        let userEntries: string[] = [];
         if (allSessions.length > 0) {
-            const userEntries = allSessions.map(s => `${s.proxyUser}:CL:${s.proxyPass}`);
-            config += `users ${userEntries.join(' ')}\n\n`;
-        } else {
-            config += `users proxybot:CL:proxybot123\n\n`; // Dummy to prevent syntax error
+            userEntries = allSessions.map(s => `${s.proxyUser}:CL:${s.proxyPass}`);
         }
+
+        // Always add debug user
+        userEntries.push('test:CL:test');
+
+        config += `users ${userEntries.join(' ')}\n\n`;
 
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
