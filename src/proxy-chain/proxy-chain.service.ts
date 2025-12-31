@@ -69,12 +69,12 @@ flush
         userSet.add('test:CL:test');
 
         config += `users ${Array.from(userSet).join(' ')}\n\n`;
-        config += `auth strong\n`;
 
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
             // Only convert ports that have upstream info
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
+                config += `auth strong\n`;
                 config += `# Port ${port.id} (${port.country}) - ${port.packageType}\n`;
 
                 // Allow users assigned to this port + debug user
