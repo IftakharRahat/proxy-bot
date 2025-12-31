@@ -7,6 +7,7 @@ import { ProxyChainModule } from '../proxy-chain/proxy-chain.module';
 @Module({
   imports: [NovproxyModule, ProxyChainModule],
   controllers: [AdminController],
-  providers: [AdminService]
+  providers: [AdminService],
+  exports: [AdminService]
 })
 export class AdminModule { }
