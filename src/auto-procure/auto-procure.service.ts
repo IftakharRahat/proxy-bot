@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NovproxyService } from '../novproxy/novproxy.service';
 import { ProxyChainService } from '../proxy-chain/proxy-chain.service';
 import { AdminService } from '../admin/admin.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AutoProcurementService {
@@ -13,6 +14,7 @@ export class AutoProcurementService {
         private novproxy: NovproxyService,
         private chain: ProxyChainService,
         private admin: AdminService, // For purchase logging
+        private configService: ConfigService,
     ) { }
 
     /**
@@ -80,6 +82,17 @@ export class AutoProcurementService {
 
             const purchasedPort = portList.data.list[0];
 
+            // B.1 Apply Settings (Country & Rotation)
+            // FUNDAMENTAL FIX: Ensure the port is labeled correctly on Novproxy
+            const targetRegion = country === 'Random' ? 'US' : country;
+            await this.novproxy.batchEditPorts([purchasedPort.id], {
+                username: purchasedPort.username,
+                password: purchasedPort.password,
+                region: targetRegion,
+                minute: 30, // Default rotation for auto-buy
+            });
+            this.logger.log(`Port ${purchasedPort.id} settings applied: Region=${targetRegion}`);
+
             // C. Determine Local Port (for Shared)
             let localPort: number | null = null;
             let upstreamInfo: any = {};
@@ -97,7 +110,7 @@ export class AutoProcurementService {
                     upstreamPort: purchasedPort.port,
                     upstreamUser: purchasedPort.username, // Default from Novproxy
                     upstreamPass: purchasedPort.password,
-                    host: 'VPS_IP_HERE', // Placeholder, should be ENV or Config
+                    host: this.configService.get('VPS_IP') || '127.0.0.1',
                 };
             } else {
                 // High: Direct
@@ -117,7 +130,7 @@ export class AutoProcurementService {
                     host: upstreamInfo.host || purchasedPort.ip, // Validated
                     port: localPort || purchasedPort.port,
                     protocol: 'HTTP',
-                    country: purchasedPort.region || country, // Trust API region
+                    country: targetRegion, // Use the region we just set
                     packageType: tier,
                     maxUsers: tier === 'High' ? 1 : tier === 'Medium' ? 3 : 5,
                     currentUsers: 0,

@@ -353,7 +353,7 @@ export class BotUpdateService {
                 // Actually, the previous code had a syntax that might not work: (this.prisma.port as any).fields.maxUsers
                 // We will just fetch ports that are active and match tier/country.
                 packageType: tier.charAt(0).toUpperCase() + tier.slice(1),
-                country: country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] },
+                country: country === 'US' ? { in: ['US', 'USA', 'United States', 'Random'] } : { in: ['Canada', 'CA', 'CAN', 'Random'] },
             },
             take: 20,
         });
@@ -372,7 +372,7 @@ export class BotUpdateService {
                     where: {
                         isActive: true,
                         packageType: tierCap,
-                        country: country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] },
+                        country: country === 'US' ? { in: ['US', 'USA', 'United States', 'Random'] } : { in: ['Canada', 'CA', 'CAN', 'Random'] },
                     },
                     take: 20
                 });
