@@ -79,7 +79,7 @@ proxy -p30000
                 config += usersLine;
                 config += `auth strong\n`;
 
-                // ACL must come before parent if we want it to be gated
+                // CRITICAL: allow must come BEFORE parent for authenticated chaining
                 const allowedUsers = ['test', ...port.sessions.map(s => s.proxyUser)];
                 config += `allow ${allowedUsers.join(',')}\n`;
 
