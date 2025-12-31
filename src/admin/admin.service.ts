@@ -478,8 +478,11 @@ export class AdminService {
                 page++;
             }
 
-            // Check which ports are already in our database
-            const existingIds = (await this.prisma.port.findMany({ select: { id: true } })).map(p => p.id);
+            // Check which ports are already in our database with their tier
+            const existingPorts = await this.prisma.port.findMany({
+                select: { id: true, packageType: true }
+            });
+            const existingMap = new Map(existingPorts.map(p => [p.id, p.packageType]));
 
             const portsWithStatus = allPorts.map(port => ({
                 id: port.id,
@@ -490,10 +493,11 @@ export class AdminService {
                 region: port.region,
                 expired: port.expired,
                 rotation: port.minute,
-                isImported: existingIds.includes(port.id),
+                isImported: existingMap.has(port.id),
+                assignedTier: existingMap.get(port.id) || null,
             }));
 
-            logger.log(`Fetched ${allPorts.length} ports from Novproxy. ${existingIds.length} already imported.`);
+            logger.log(`Fetched ${allPorts.length} ports from Novproxy. ${existingPorts.length} already imported.`);
             return { success: true, ports: portsWithStatus, total: allPorts.length };
         } catch (error) {
             logger.error(`Preview failed: ${error.message}`);

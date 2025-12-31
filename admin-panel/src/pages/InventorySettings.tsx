@@ -484,6 +484,7 @@ export const InventorySettings: React.FC = () => {
                                         <th className="p-3 text-left">Port</th>
                                         <th className="p-3 text-left">Region</th>
                                         <th className="p-3 text-left">Expires</th>
+                                        <th className="p-3 text-left">Tier</th>
                                         <th className="p-3 text-left">Status</th>
                                     </tr>
                                 </thead>
@@ -512,6 +513,20 @@ export const InventorySettings: React.FC = () => {
                                             <td className="p-3 text-blue-400 font-bold text-xs">{port.port}</td>
                                             <td className="p-3 text-slate-300 text-xs">{port.region || 'Random'}</td>
                                             <td className="p-3 text-slate-400 text-xs">{new Date(port.expired).toLocaleDateString()}</td>
+                                            <td className="p-3">
+                                                {port.assignedTier ? (
+                                                    <span className={clsx(
+                                                        "px-2 py-1 text-[10px] font-bold rounded-lg",
+                                                        port.assignedTier === 'High' ? "bg-purple-500/20 text-purple-400" :
+                                                            port.assignedTier === 'Medium' ? "bg-blue-500/20 text-blue-400" :
+                                                                "bg-emerald-500/20 text-emerald-400"
+                                                    )}>
+                                                        {port.assignedTier}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-600 text-xs">—</span>
+                                                )}
+                                            </td>
                                             <td className="p-3">
                                                 {port.isImported ? (
                                                     <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg">IMPORTED</span>
