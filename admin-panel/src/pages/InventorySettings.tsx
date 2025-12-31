@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Settings, Zap, Shield, Save, Package, RefreshCcw } from 'lucide-react';
+import { Settings, Zap, Shield, Save, Package, RefreshCcw, CloudDownload } from 'lucide-react';
 import clsx from 'clsx';
 
 interface PackageConfig {
@@ -25,6 +25,67 @@ export const InventorySettings: React.FC = () => {
     const [priceSource, setPriceSource] = useState<string>('');
     const [refillCountry, setRefillCountry] = useState('US');
     const [refillRotation, setRefillRotation] = useState(30);
+    const [syncLoading, setSyncLoading] = useState(false);
+    const [showProviderModal, setShowProviderModal] = useState(false);
+    const [providerPorts, setProviderPorts] = useState<any[]>([]);
+    const [selectedPortIds, setSelectedPortIds] = useState<number[]>([]);
+    const [importLoading, setImportLoading] = useState(false);
+
+    const handlePreviewProvider = async () => {
+        setSyncLoading(true);
+        try {
+            const res = await api.get('/admin/preview-provider');
+            if (res.data.success) {
+                setProviderPorts(res.data.ports);
+                setSelectedPortIds([]);
+                setShowProviderModal(true);
+            } else {
+                alert('Preview failed: ' + res.data.msg);
+            }
+        } catch (err) {
+            alert('Preview error. Check console.');
+            console.error(err);
+        } finally {
+            setSyncLoading(false);
+        }
+    };
+
+    const handleImportSelected = async () => {
+        if (selectedPortIds.length === 0) {
+            alert('Please select at least one port to import.');
+            return;
+        }
+        setImportLoading(true);
+        try {
+            const res = await api.post('/admin/import-ports', {
+                portIds: selectedPortIds,
+                packageType: refillPkg,
+            });
+            if (res.data.success) {
+                alert(`Import successful! ${res.data.imported} ports added.`);
+                setShowProviderModal(false);
+                setSelectedPortIds([]);
+            } else {
+                alert('Import failed: ' + res.data.msg);
+            }
+        } catch (err) {
+            alert('Import error. Check console.');
+            console.error(err);
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
+    const togglePortSelection = (id: number) => {
+        setSelectedPortIds(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+        );
+    };
+
+    const selectAllNew = () => {
+        const newPorts = providerPorts.filter(p => !p.isImported).map(p => p.id);
+        setSelectedPortIds(newPorts);
+    };
 
     const handlePreview = async () => {
         setIsEstimating(true);
@@ -111,12 +172,27 @@ export const InventorySettings: React.FC = () => {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <header>
-                <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                    <Package className="text-blue-500" size={32} />
-                    Node Inventory & Logistics
-                </h1>
-                <p className="text-slate-500 mt-1 font-medium italic text-sm">Configure automated procurement and manual node fulfillment parameters.</p>
+            <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                        <Package className="text-blue-500" size={32} />
+                        Node Inventory & Logistics
+                    </h1>
+                    <p className="text-slate-500 mt-1 font-medium italic text-sm">Configure automated procurement and manual node fulfillment parameters.</p>
+                </div>
+                <button
+                    onClick={handlePreviewProvider}
+                    disabled={syncLoading}
+                    className={clsx(
+                        "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-wider transition-all",
+                        syncLoading
+                            ? "bg-slate-700 text-slate-400 cursor-wait"
+                            : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                    )}
+                >
+                    <CloudDownload size={18} className={syncLoading ? "animate-pulse" : ""} />
+                    {syncLoading ? 'Loading...' : 'Browse Provider'}
+                </button>
             </header>
 
             {/* Section 1: Package Slot Configuration */}
@@ -369,6 +445,114 @@ export const InventorySettings: React.FC = () => {
                         >
                             {refillLoading ? <RefreshCcw className="animate-spin" /> : "Confirm & Activate Stock"}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Provider Ports Preview Modal */}
+            {showProviderModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-black text-white">Provider Inventory</h2>
+                                <p className="text-slate-500 text-xs mt-1">Select ports to import into your stock</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={selectAllNew}
+                                    className="px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold"
+                                >
+                                    Select All New
+                                </button>
+                                <button
+                                    onClick={() => setShowProviderModal(false)}
+                                    className="px-4 py-2 bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-4">
+                            <table className="w-full">
+                                <thead className="sticky top-0 bg-slate-900">
+                                    <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                        <th className="p-3 text-left">Select</th>
+                                        <th className="p-3 text-left">ID</th>
+                                        <th className="p-3 text-left">IP / Domain</th>
+                                        <th className="p-3 text-left">Port</th>
+                                        <th className="p-3 text-left">Region</th>
+                                        <th className="p-3 text-left">Expires</th>
+                                        <th className="p-3 text-left">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {providerPorts.map((port) => (
+                                        <tr
+                                            key={port.id}
+                                            className={clsx(
+                                                "border-b border-white/5 transition-colors",
+                                                port.isImported ? "opacity-50" : "hover:bg-white/5 cursor-pointer",
+                                                selectedPortIds.includes(port.id) && "bg-blue-500/10"
+                                            )}
+                                            onClick={() => !port.isImported && togglePortSelection(port.id)}
+                                        >
+                                            <td className="p-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedPortIds.includes(port.id)}
+                                                    disabled={port.isImported}
+                                                    onChange={() => togglePortSelection(port.id)}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500"
+                                                />
+                                            </td>
+                                            <td className="p-3 text-slate-400 font-mono text-xs">{port.id}</td>
+                                            <td className="p-3 text-white font-mono text-xs">{port.domain || port.ip}</td>
+                                            <td className="p-3 text-blue-400 font-bold text-xs">{port.port}</td>
+                                            <td className="p-3 text-slate-300 text-xs">{port.region || 'Random'}</td>
+                                            <td className="p-3 text-slate-400 text-xs">{new Date(port.expired).toLocaleDateString()}</td>
+                                            <td className="p-3">
+                                                {port.isImported ? (
+                                                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg">IMPORTED</span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-lg">NEW</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-6 border-t border-white/5 flex items-center justify-between">
+                            <div className="text-slate-400 text-sm">
+                                <span className="text-white font-bold">{selectedPortIds.length}</span> ports selected
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <select
+                                    value={refillPkg}
+                                    onChange={(e) => setRefillPkg(e.target.value)}
+                                    className="bg-slate-800 border border-white/10 rounded-xl px-4 py-2 text-white text-sm"
+                                >
+                                    <option value="Normal">Normal Tier</option>
+                                    <option value="Medium">Medium Tier</option>
+                                    <option value="High">High Tier</option>
+                                </select>
+                                <button
+                                    onClick={handleImportSelected}
+                                    disabled={importLoading || selectedPortIds.length === 0}
+                                    className={clsx(
+                                        "px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-wider transition-all",
+                                        importLoading || selectedPortIds.length === 0
+                                            ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500"
+                                    )}
+                                >
+                                    {importLoading ? 'Importing...' : `Import ${selectedPortIds.length} Ports`}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

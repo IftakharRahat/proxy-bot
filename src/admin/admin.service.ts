@@ -348,6 +348,235 @@ export class AdminService {
         };
     }
 
+    /**
+     * Sync all ports from Novproxy dashboard (Manual Sync Mode)
+     * Does NOT buy new ports - only imports existing ones
+     */
+    async syncProviderInventory(packageType: string = 'Normal') {
+        const logger = new Logger('SyncProviderInventory');
+        logger.log('Starting Provider Inventory Sync...');
+
+        try {
+            // 1. Fetch ALL ports from Novproxy (paginated)
+            let allPorts: any[] = [];
+            let page = 1;
+            const pageSize = 100;
+
+            while (true) {
+                const res = await this.novproxyService.getPortsList(page, pageSize);
+                if (res.code !== 0 || !res.data?.list?.length) break;
+                allPorts = allPorts.concat(res.data.list);
+                if (res.data.list.length < pageSize) break;
+                page++;
+            }
+
+            logger.log(`Fetched ${allPorts.length} ports from Novproxy`);
+
+            if (allPorts.length === 0) {
+                return { success: true, msg: 'No ports found in Novproxy dashboard.', synced: 0, total: 0 };
+            }
+
+            // 2. Get VPS IP and find next available local port
+            const vpsIp = this.configService.get('VPS_IP') || '127.0.0.1';
+            let nextLocalPort = 30000;
+            const lastPort = await this.prisma.port.findFirst({
+                where: { localPort: { not: null } },
+                orderBy: { localPort: 'desc' },
+            });
+            if (lastPort?.localPort) nextLocalPort = lastPort.localPort + 1;
+
+            // 3. Upsert each port
+            let syncedCount = 0;
+            let newCount = 0;
+
+            for (const port of allPorts) {
+                // Check if port already exists
+                const existing = await this.prisma.port.findUnique({ where: { id: port.id } });
+
+                let localPortVal: number | null = null;
+                let finalHost = port.ip;
+                let finalPort = port.port;
+
+                // Only assign new localPort if this is a NEW port (not existing)
+                if (!existing && packageType !== 'High') {
+                    localPortVal = nextLocalPort++;
+                    finalHost = vpsIp;
+                    finalPort = localPortVal;
+                } else if (existing) {
+                    // Keep existing assignments
+                    localPortVal = existing.localPort;
+                    finalHost = existing.host;
+                    finalPort = existing.port;
+                }
+
+                await this.prisma.port.upsert({
+                    where: { id: port.id },
+                    create: {
+                        id: port.id,
+                        host: packageType !== 'High' ? vpsIp : port.ip,
+                        port: packageType !== 'High' ? localPortVal! : port.port,
+                        country: port.region || 'Random',
+                        protocol: 'HTTP',
+                        packageType: packageType,
+                        maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
+                        isActive: true,
+                        localPort: localPortVal,
+                        upstreamHost: port.ip,
+                        upstreamPort: port.port,
+                        upstreamUser: port.username,
+                        upstreamPass: port.password,
+                    },
+                    update: {
+                        // Only update upstream info and country, NEVER change localPort/host/port
+                        upstreamHost: port.ip,
+                        upstreamPort: port.port,
+                        upstreamUser: port.username,
+                        upstreamPass: port.password,
+                        country: port.region || existing?.country || 'Random',
+                        isActive: true,
+                    },
+                });
+
+                syncedCount++;
+                if (!existing) newCount++;
+            }
+
+            // 4. Rebuild 3proxy config if shared ports were added
+            if (packageType !== 'High' && newCount > 0) {
+                await this.proxyChain.rebuildConfig();
+            }
+
+            logger.log(`Sync complete: ${syncedCount} ports synced, ${newCount} new ports added.`);
+            return {
+                success: true,
+                msg: `Synced ${syncedCount} ports from Novproxy. ${newCount} new ports added to ${packageType} pool.`,
+                synced: syncedCount,
+                newPorts: newCount,
+                total: allPorts.length,
+            };
+        } catch (error) {
+            logger.error(`Sync failed: ${error.message}`);
+            return { success: false, msg: error.message, synced: 0, total: 0 };
+        }
+    }
+
+    /**
+     * Preview all ports from Novproxy (for admin to select which to import)
+     */
+    async previewProviderPorts() {
+        const logger = new Logger('PreviewProviderPorts');
+        try {
+            let allPorts: any[] = [];
+            let page = 1;
+            const pageSize = 100;
+
+            while (true) {
+                const res = await this.novproxyService.getPortsList(page, pageSize);
+                if (res.code !== 0 || !res.data?.list?.length) break;
+                allPorts = allPorts.concat(res.data.list);
+                if (res.data.list.length < pageSize) break;
+                page++;
+            }
+
+            // Check which ports are already in our database
+            const existingIds = (await this.prisma.port.findMany({ select: { id: true } })).map(p => p.id);
+
+            const portsWithStatus = allPorts.map(port => ({
+                id: port.id,
+                ip: port.ip,
+                domain: port.domain,
+                port: port.port,
+                username: port.username,
+                region: port.region,
+                expired: port.expired,
+                rotation: port.minute,
+                isImported: existingIds.includes(port.id),
+            }));
+
+            logger.log(`Fetched ${allPorts.length} ports from Novproxy. ${existingIds.length} already imported.`);
+            return { success: true, ports: portsWithStatus, total: allPorts.length };
+        } catch (error) {
+            logger.error(`Preview failed: ${error.message}`);
+            return { success: false, msg: error.message, ports: [] };
+        }
+    }
+
+    /**
+     * Import only selected ports from Novproxy
+     */
+    async importSelectedPorts(portIds: number[], packageType: string = 'Normal') {
+        const logger = new Logger('ImportSelectedPorts');
+        logger.log(`Importing ${portIds.length} selected ports as ${packageType}...`);
+
+        try {
+            // Fetch port details from Novproxy
+            let allPorts: any[] = [];
+            let page = 1;
+            while (true) {
+                const res = await this.novproxyService.getPortsList(page, 100);
+                if (res.code !== 0 || !res.data?.list?.length) break;
+                allPorts = allPorts.concat(res.data.list);
+                if (res.data.list.length < 100) break;
+                page++;
+            }
+
+            const selectedPorts = allPorts.filter(p => portIds.includes(p.id));
+            if (selectedPorts.length === 0) {
+                return { success: false, msg: 'No matching ports found in provider.' };
+            }
+
+            // Get VPS IP and next local port
+            const vpsIp = this.configService.get('VPS_IP') || '127.0.0.1';
+            let nextLocalPort = 30000;
+            const lastPort = await this.prisma.port.findFirst({
+                where: { localPort: { not: null } },
+                orderBy: { localPort: 'desc' },
+            });
+            if (lastPort?.localPort) nextLocalPort = lastPort.localPort + 1;
+
+            let importedCount = 0;
+            for (const port of selectedPorts) {
+                const existing = await this.prisma.port.findUnique({ where: { id: port.id } });
+                if (existing) {
+                    logger.log(`Port ${port.id} already exists, skipping.`);
+                    continue;
+                }
+
+                const localPortVal = packageType !== 'High' ? nextLocalPort++ : null;
+
+                await this.prisma.port.create({
+                    data: {
+                        id: port.id,
+                        host: packageType !== 'High' ? vpsIp : port.ip,
+                        port: packageType !== 'High' ? localPortVal! : port.port,
+                        country: port.region || 'Random',
+                        protocol: 'HTTP',
+                        packageType: packageType,
+                        maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
+                        isActive: true,
+                        localPort: localPortVal,
+                        upstreamHost: port.ip,
+                        upstreamPort: port.port,
+                        upstreamUser: port.username,
+                        upstreamPass: port.password,
+                    },
+                });
+                importedCount++;
+            }
+
+            // Rebuild 3proxy config if shared ports added
+            if (packageType !== 'High' && importedCount > 0) {
+                await this.proxyChain.rebuildConfig();
+            }
+
+            logger.log(`Import complete: ${importedCount} ports added to ${packageType} pool.`);
+            return { success: true, msg: `Imported ${importedCount} ports to ${packageType} pool.`, imported: importedCount };
+        } catch (error) {
+            logger.error(`Import failed: ${error.message}`);
+            return { success: false, msg: error.message };
+        }
+    }
+
     // ========== BOT PRICING CONFIGURATION ==========
 
     async getBotPricing() {

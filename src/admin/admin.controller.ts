@@ -60,6 +60,21 @@ export class AdminController {
         return this.adminService.changeCountry(parseInt(id, 10), body.newCountry);
     }
 
+    @Post('sync-inventory')
+    async syncInventory(@Body() body: { packageType?: string }) {
+        return this.adminService.syncProviderInventory(body.packageType || 'Normal');
+    }
+
+    @Get('preview-provider')
+    async previewProvider() {
+        return this.adminService.previewProviderPorts();
+    }
+
+    @Post('import-ports')
+    async importPorts(@Body() body: { portIds: number[]; packageType: string }) {
+        return this.adminService.importSelectedPorts(body.portIds, body.packageType);
+    }
+
     // ========== BOT PRICING ENDPOINTS ==========
 
     @Get('bot-pricing')
