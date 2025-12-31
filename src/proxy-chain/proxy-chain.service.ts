@@ -69,8 +69,6 @@ timeouts 1 5 30 60 180 1800 15 60
         // 4. Generate Port/Chain definitions - NO FLUSH
         for (const port of sharedPorts) {
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
-                config += `allow *\n`;
-
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
 
