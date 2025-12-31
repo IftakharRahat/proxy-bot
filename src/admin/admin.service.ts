@@ -51,6 +51,13 @@ export class AdminService {
                         packageType: true,
                         upstreamHost: true,
                         upstreamPort: true,
+                        sessions: {
+                            select: {
+                                user: {
+                                    select: { username: true }
+                                }
+                            }
+                        }
                     },
                 },
             },
