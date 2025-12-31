@@ -108,8 +108,7 @@ flush
                 config += `proxy -p${port.localPort}\n`;
 
                 // SOCKS5 Support (Offset by 5000)
-                config += `socks -p${port.localPort + 5000}\n`;
-                config += `flush\n\n`;
+                config += `socks -p${port.localPort + 5000}\n\n`;
             }
         }
 
