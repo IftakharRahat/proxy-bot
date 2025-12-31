@@ -131,16 +131,30 @@ export const ProxiesPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Terminal Link</p>
-                                        <p className="text-xs font-mono text-slate-300">@{proxy.user?.username || 'root_access'}</p>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Proxy Endpoint</p>
+                                            <div className="px-2 py-0.5 bg-blue-500/10 rounded text-[8px] font-bold text-blue-400 border border-blue-500/20">
+                                                {proxy.port?.protocol || 'HTTP'}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm font-mono text-white font-bold tracking-tight">
+                                            {proxy.port?.host || '0.0.0.0'}:{proxy.port?.port || '0000'}
+                                        </p>
                                     </div>
-                                    <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Expiration</p>
-                                        <div className="flex items-center gap-1.5">
-                                            <Clock size={12} className="text-slate-500" />
-                                            <p className="text-xs font-bold text-slate-300">{new Date(proxy.expiresAt).toLocaleDateString()}</p>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Terminal Link</p>
+                                            <p className="text-xs font-mono text-slate-300 truncate">@{proxy.user?.username || 'root_access'}</p>
+                                        </div>
+                                        <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Expiration</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock size={12} className="text-slate-500" />
+                                                <p className="text-xs font-bold text-slate-300">{new Date(proxy.expiresAt).toLocaleDateString()}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -177,6 +191,7 @@ export const ProxiesPage = () => {
                         <thead>
                             <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
                                 <th className="px-8 py-5">Node Context</th>
+                                <th className="px-8 py-5">Endpoint (IP:Port)</th>
                                 <th className="px-8 py-5">Package Tier</th>
                                 <th className="px-8 py-5">Substrate Link</th>
                                 <th className="px-8 py-5">Lease Term</th>
@@ -195,6 +210,11 @@ export const ProxiesPage = () => {
                                                 <p className="font-bold text-white uppercase tracking-tight">{proxy.port?.country || 'Global'}</p>
                                                 <p className="text-[10px] text-slate-500 font-black tracking-widest">SECURE_TUNNEL_01</p>
                                             </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg font-mono text-[11px] text-blue-400 font-bold inline-block">
+                                            {proxy.port?.host}:{proxy.port?.port}
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
