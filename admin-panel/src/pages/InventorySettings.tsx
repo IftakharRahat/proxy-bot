@@ -493,17 +493,15 @@ export const InventorySettings: React.FC = () => {
                                         <tr
                                             key={port.id}
                                             className={clsx(
-                                                "border-b border-white/5 transition-colors",
-                                                port.isImported ? "opacity-50" : "hover:bg-white/5 cursor-pointer",
+                                                "border-b border-white/5 transition-colors hover:bg-white/5 cursor-pointer",
                                                 selectedPortIds.includes(port.id) && "bg-blue-500/10"
                                             )}
-                                            onClick={() => !port.isImported && togglePortSelection(port.id)}
+                                            onClick={() => togglePortSelection(port.id)}
                                         >
                                             <td className="p-3">
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedPortIds.includes(port.id)}
-                                                    disabled={port.isImported}
                                                     onChange={() => togglePortSelection(port.id)}
                                                     className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500"
                                                 />

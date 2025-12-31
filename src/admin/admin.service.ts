@@ -441,8 +441,8 @@ export class AdminService {
                 if (!existing) newCount++;
             }
 
-            // 4. Rebuild 3proxy config if shared ports were added
-            if (packageType !== 'High' && newCount > 0) {
+            // 4. Rebuild 3proxy config if shared ports were added or updated
+            if (packageType !== 'High' && (newCount > 0 || syncedCount > 0)) {
                 await this.proxyChain.rebuildConfig();
             }
 
@@ -539,17 +539,23 @@ export class AdminService {
             if (lastPort?.localPort) nextLocalPort = lastPort.localPort + 1;
 
             let importedCount = 0;
+            let newPortsCount = 0;
+
             for (const port of selectedPorts) {
                 const existing = await this.prisma.port.findUnique({ where: { id: port.id } });
-                if (existing) {
-                    logger.log(`Port ${port.id} already exists, skipping.`);
-                    continue;
+
+                let localPortVal: number | null = null;
+                // If it's a new port, assign next available local port
+                if (!existing && packageType !== 'High') {
+                    localPortVal = nextLocalPort++;
+                } else if (existing) {
+                    // Keep existing assignment
+                    localPortVal = existing.localPort;
                 }
 
-                const localPortVal = packageType !== 'High' ? nextLocalPort++ : null;
-
-                await this.prisma.port.create({
-                    data: {
+                await this.prisma.port.upsert({
+                    where: { id: port.id },
+                    create: {
                         id: port.id,
                         host: packageType !== 'High' ? vpsIp : port.ip,
                         port: packageType !== 'High' ? localPortVal! : port.port,
@@ -564,17 +570,32 @@ export class AdminService {
                         upstreamUser: port.username,
                         upstreamPass: port.password,
                     },
+                    update: {
+                        // Update upstream credentials and details
+                        upstreamHost: port.ip,
+                        upstreamPort: port.port,
+                        upstreamUser: port.username,
+                        upstreamPass: port.password,
+                        country: port.region || existing?.country || 'Random',
+                        isActive: true,
+                    }
                 });
+
                 importedCount++;
+                if (!existing) newPortsCount++;
             }
 
-            // Rebuild 3proxy config if shared ports added
+            // Rebuild 3proxy config if any ports were added OR updated (to refresh credentials)
             if (packageType !== 'High' && importedCount > 0) {
                 await this.proxyChain.rebuildConfig();
             }
 
-            logger.log(`Import complete: ${importedCount} ports added to ${packageType} pool.`);
-            return { success: true, msg: `Imported ${importedCount} ports to ${packageType} pool.`, imported: importedCount };
+            logger.log(`Import complete: ${importedCount} ports processed (${newPortsCount} new) in ${packageType} pool.`);
+            return {
+                success: true,
+                msg: `Processed ${importedCount} ports (${newPortsCount} new) in ${packageType} pool.`,
+                imported: importedCount
+            };
         } catch (error) {
             logger.error(`Import failed: ${error.message}`);
             return { success: false, msg: error.message };
