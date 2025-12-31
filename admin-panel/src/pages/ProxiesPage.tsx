@@ -109,7 +109,17 @@ export const ProxiesPage = () => {
                                             <Globe size={20} className="text-blue-400" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Geographical Node</p>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Geographical Node</p>
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border",
+                                                    proxy.port?.packageType === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                                                        proxy.port?.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
+                                                            "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                )}>
+                                                    {proxy.port?.packageType}
+                                                </span>
+                                            </div>
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{proxy.port?.country || 'Global'}</h3>
                                         </div>
                                     </div>
@@ -167,6 +177,7 @@ export const ProxiesPage = () => {
                         <thead>
                             <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
                                 <th className="px-8 py-5">Node Context</th>
+                                <th className="px-8 py-5">Package Tier</th>
                                 <th className="px-8 py-5">Substrate Link</th>
                                 <th className="px-8 py-5">Lease Term</th>
                                 <th className="px-8 py-5 text-center">Operations</th>
@@ -185,6 +196,16 @@ export const ProxiesPage = () => {
                                                 <p className="text-[10px] text-slate-500 font-black tracking-widest">SECURE_TUNNEL_01</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <span className={clsx(
+                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                            proxy.port?.packageType === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                                                proxy.port?.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
+                                                    "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                        )}>
+                                            {proxy.port?.packageType}
+                                        </span>
                                     </td>
                                     <td className="px-8 py-6 text-sm font-mono text-slate-400 italic">
                                         @{proxy.user?.username || 'system_service'}

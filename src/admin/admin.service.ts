@@ -48,6 +48,7 @@ export class AdminService {
                         country: true,
                         currentUsers: true,
                         maxUsers: true,
+                        packageType: true,
                     },
                 },
             },
