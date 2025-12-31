@@ -2,11 +2,14 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ExpiryProcessorService } from './expiry-processor/expiry-processor.service';
-import { SessionManagerService } from '../session-manager/session-manager.service';
-import { NovproxyService } from '../novproxy/novproxy.service';
+import { SessionManagerModule } from '../session-manager/session-manager.module';
+import { NovproxyModule } from '../novproxy/novproxy.module';
 
 @Module({
   imports: [
+    ConfigModule,
+    SessionManagerModule,
+    NovproxyModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -26,7 +29,7 @@ import { NovproxyService } from '../novproxy/novproxy.service';
       name: 'rotation-cooldown',
     }),
   ],
-  providers: [ExpiryProcessorService, SessionManagerService, NovproxyService],
+  providers: [ExpiryProcessorService],
   exports: [BullModule],
 })
 export class QueueModule { }
