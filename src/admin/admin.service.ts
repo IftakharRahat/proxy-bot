@@ -694,6 +694,20 @@ export class AdminService {
         });
     }
 
+    async getAllTransactions() {
+        return this.prisma.transaction.findMany({
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        telegramId: true,
+                    },
+                },
+            },
+        });
+    }
+
     // ========== BALANCE PRESETS (BOT BUTTONS) ==========
 
     async getBalancePresets() {

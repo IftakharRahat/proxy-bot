@@ -44,3 +44,20 @@ export const getActiveSessions = async () => {
     // or return directly if structure aligns
     return response.data;
 };
+
+export interface Transaction {
+    id: number;
+    userId: number;
+    amount: string | number;
+    currency: string;
+    gateway: string;
+    trxId: string;
+    status: 'PENDING' | 'COMPLETED' | 'FAILED';
+    createdAt: string;
+    user?: {
+        username?: string;
+        telegramId: string;
+    };
+}
+
+export default api;

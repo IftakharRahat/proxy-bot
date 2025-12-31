@@ -60,6 +60,11 @@ export class AdminController {
         return this.adminService.changeCountry(parseInt(id, 10), body.newCountry);
     }
 
+    @Get('transactions')
+    async getTransactions() {
+        return this.adminService.getAllTransactions();
+    }
+
     @Post('sync-inventory')
     async syncInventory(@Body() body: { packageType?: string }) {
         return this.adminService.syncProviderInventory(body.packageType || 'Normal');
