@@ -4,8 +4,7 @@ import type { Transaction } from '../api/client';
 import clsx from 'clsx';
 import {
     ArrowsRightLeftIcon,
-    ArrowDownLeftIcon,
-    ArrowUpRightIcon
+    ArrowDownLeftIcon
 } from '@heroicons/react/24/outline';
 
 export const TransactionsPage: React.FC = () => {
