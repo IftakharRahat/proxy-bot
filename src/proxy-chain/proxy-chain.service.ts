@@ -56,21 +56,20 @@ timeouts 1 5 30 60 180 1800 15 60
 setgid 65535
 setuid 65535
 flush
-auth strong
 `;
 
         // 3. Generate 'users' line
-        // Collect all distinct users from all sessions
         const allSessions = sharedPorts.flatMap(p => p.sessions);
-        let userEntries: string[] = [];
-        if (allSessions.length > 0) {
-            userEntries = allSessions.map(s => `${s.proxyUser}:CL:${s.proxyPass}`);
+        let userSet = new Set<string>();
+        for (const s of allSessions) {
+            userSet.add(`${s.proxyUser}:CL:${s.proxyPass}`);
         }
 
         // Always add debug user
-        userEntries.push('test:CL:test');
+        userSet.add('test:CL:test');
 
-        config += `users ${userEntries.join(' ')}\n\n`;
+        config += `users ${Array.from(userSet).join(' ')}\n\n`;
+        config += `auth strong\n`;
 
         // 4. Generate Port/Chain definitions
         for (const port of sharedPorts) {
@@ -78,13 +77,10 @@ auth strong
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
                 config += `# Port ${port.id} (${port.country}) - ${port.packageType}\n`;
 
-                // Allow users assigned to this port
-                if (port.sessions.length > 0) {
-                    const allowedUsers = port.sessions.map(s => s.proxyUser).join(' ');
-                    config += `allow ${allowedUsers}\n`;
-                } else {
-                    config += `allow * \n`; // Or deny? If empty, no one connects anyway
-                }
+                // Allow users assigned to this port + debug user
+                const allowedUsers = port.sessions.map(s => s.proxyUser);
+                allowedUsers.push('test');
+                config += `allow ${allowedUsers.join(' ')}\n`;
 
                 // Parent (Upstream)
                 // Syntax: parent <weight> <type> <ip> <port> <user> <pass>
