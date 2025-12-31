@@ -147,8 +147,10 @@ export const ProxiesPage = () => {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Terminal Link</p>
-                                            <p className="text-xs font-mono text-slate-300 truncate">@{proxy.user?.username || 'root_access'}</p>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Substrate Host</p>
+                                            <p className="text-xs font-mono text-blue-400 font-bold truncate">
+                                                {proxy.port?.upstreamHost || 'Direct'}
+                                            </p>
                                         </div>
                                         <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
                                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Expiration</p>
@@ -230,8 +232,8 @@ export const ProxiesPage = () => {
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg font-mono text-[11px] text-blue-400 font-bold inline-block">
-                                            {proxy.port?.host}:{proxy.port?.port}
+                                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg font-mono text-[11px] text-emerald-400 font-bold inline-block">
+                                            {proxy.port?.upstreamHost || proxy.port?.host}:{proxy.port?.upstreamPort || proxy.port?.port}
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-sm font-mono text-slate-400 italic">

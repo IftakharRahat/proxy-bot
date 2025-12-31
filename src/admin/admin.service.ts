@@ -49,6 +49,8 @@ export class AdminService {
                         currentUsers: true,
                         maxUsers: true,
                         packageType: true,
+                        upstreamHost: true,
+                        upstreamPort: true,
                     },
                 },
             },
