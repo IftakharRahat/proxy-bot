@@ -82,11 +82,11 @@ proxy -p30000
                 const upUser = port.upstreamUser || '';
                 const upPass = port.upstreamPass || '';
 
-                // Upstream Chain
+                // Upstream Chain - Using 'http' type for authenticated parents
                 if (upUser && upPass) {
-                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
+                    config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${upUser} ${upPass}\n`;
                 } else {
-                    config += `parent 1000 tcp ${port.upstreamHost} ${port.upstreamPort}\n`;
+                    config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}\n`;
                 }
 
                 // Auth and ACL
@@ -127,24 +127,5 @@ proxy -p30000
             this.logger.error(`Failed to update 3proxy: ${error.message}`);
         }
     }
-
-        this.logger.log('Generated 3proxy config with Global-No-Flush pattern.');
-
-// 4. Write file
-try {
-    if (process.platform !== 'win32') {
-        await fs.promises.writeFile(this.configPath, config);
-        this.logger.log(`Config written to ${this.configPath}`);
-
-        // 5. Hard Restart
-        await execAsync(this.reloadCommand);
-        this.logger.log('3proxy service hard-restarted');
-    } else {
-        this.logger.log('Windows Environment detected. Skipping write/reload.');
-    }
-} catch (error) {
-    this.logger.error(`Failed to update 3proxy: ${error.message}`);
-    // Don't throw, as it might block the main flow. Just log error.
 }
-    }
 }
