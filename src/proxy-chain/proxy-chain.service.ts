@@ -84,7 +84,7 @@ export class ProxyChainService implements OnModuleInit {
 # DO NOT EDIT MANUALLY
 # =====================================
 
-# daemon removed for systemd compatibility
+daemon
 nserver 1.1.1.1
 nserver 8.8.8.8
 nscache 65536
@@ -95,7 +95,7 @@ ${usersLine}
 
 # -------- DIAGNOSTIC PORT --------
 auth strong
-allow test * * * *
+allow test
 proxy -p30000
 `;
 
@@ -111,11 +111,10 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
-            // Explicit allow syntax to prevent parsing errors
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
 auth strong
-allow ${allowedUsers.join(',')} * * * *
+allow ${allowedUsers.join(',')}
 `;
 
             // Parent proxy
