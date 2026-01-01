@@ -207,19 +207,22 @@ export class SessionManagerService {
         // Generate new credentials
         const newCredentials = this.generateSessionCredentials(session.userId, session.portId);
 
-        // Call Novproxy API to update credentials
         try {
-            await this.novproxy.batchEditPorts(
-                [session.portId],
-                {
-                    username: newCredentials.username,
-                    password: newCredentials.password,
-                    region: session.port.country,
-                    minute: session.rotationPeriod,
-                }
-            );
-            this.logger.log(`Novproxy sync successful for session ${sessionId}`);
+            // Only update upstream for Dedicated/High ports
+            if (session.port.packageType === 'High') {
+                await this.novproxy.batchEditPorts(
+                    [session.portId],
+                    {
+                        username: newCredentials.username,
+                        password: newCredentials.password,
+                        region: session.port.country,
+                        minute: session.rotationPeriod,
+                    }
+                );
+                this.logger.log(`Novproxy sync successful for session ${sessionId}`);
+            }
 
+            // Update DB
             const updated = await this.prisma.proxySession.update({
                 where: { id: sessionId },
                 data: {
@@ -228,6 +231,12 @@ export class SessionManagerService {
                     lastRotatedAt: new Date(),
                 },
             });
+
+            // Sync Local 3proxy Config (CRITICAL)
+            if (session.port.packageType !== 'High') {
+                await this.proxyChain.rebuildConfig();
+                this.logger.log(`Local 3proxy config rebuilt for session ${sessionId}`);
+            }
 
             this.logger.log(`IP rotated for session ${sessionId}`);
 
@@ -238,7 +247,7 @@ export class SessionManagerService {
                 lastRotatedAt: updated.lastRotatedAt,
             };
         } catch (error) {
-            this.logger.error(`Failed to sync rotation with Novproxy: ${error.message}`);
+            this.logger.error(`Failed to rotate IP: ${error.message}`);
             throw error;
         }
     }

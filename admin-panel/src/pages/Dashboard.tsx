@@ -176,23 +176,6 @@ export const Dashboard = () => {
                                 </div>
                             );
                         })}
-
-                        {/* Sync Proxy Config Button */}
-                        <button
-                            onClick={async () => {
-                                const toastId = toast.loading('Syncing proxy config...');
-                                try {
-                                    await api.post('/admin/sync-config');
-                                    toast.success('3proxy configuration synced!', { id: toastId });
-                                } catch (err) {
-                                    toast.error('Failed to sync config', { id: toastId });
-                                }
-                            }}
-                            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-black text-white uppercase tracking-widest transition-all cursor-pointer relative z-50 hover:scale-[1.02] active:scale-95 shadow-lg shadow-blue-600/20"
-                        >
-                            <RefreshCw size={14} />
-                            Sync Proxy Config
-                        </button>
                     </div>
 
                     <div className="mt-12 bg-white/[0.03] rounded-3xl p-6 border border-white/5">
@@ -207,6 +190,32 @@ export const Dashboard = () => {
                             />
                         </div>
                     </div>
+                </div>
+
+                {/* Sync Config Card - Separate to ensure clickability */}
+                <div className="glass-card rounded-[2.5rem] p-8 border border-white/5 flex flex-col items-center justify-center text-center">
+                    <div className="p-4 rounded-full bg-blue-500/10 text-blue-400 mb-4">
+                        <RefreshCw size={24} />
+                    </div>
+                    <h3 className="text-lg font-black text-white mb-2">System Synchronization</h3>
+                    <p className="text-xs text-slate-500 mb-6">Force update proxy configurations if credentials mismatch.</p>
+
+                    <button
+                        onClick={async () => {
+                            const toastId = toast.loading('Syncing proxy config...');
+                            try {
+                                const res = await api.post('/admin/sync-config');
+                                console.log('Sync response:', res);
+                                toast.success('3proxy configuration synced successfully!', { id: toastId });
+                            } catch (err: any) {
+                                console.error('Sync failed:', err);
+                                toast.error(`Failed: ${err.message || 'Unknown error'}`, { id: toastId });
+                            }
+                        }}
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-xs font-black text-white uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                        Sync Now
+                    </button>
                 </div>
             </div>
         </div>
