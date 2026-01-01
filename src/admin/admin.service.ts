@@ -33,33 +33,18 @@ export class AdminService {
     }
 
     async getAllProxies() {
-        return this.prisma.proxySession.findMany({
+        // Return all imported ports, not just those with active sessions
+        return this.prisma.port.findMany({
             where: {
-                status: 'ACTIVE',
+                isActive: true,
             },
             include: {
-                user: {
-                    select: { username: true, telegramId: true },
-                },
-                port: {
-                    select: {
-                        id: true,
-                        host: true,
-                        port: true,
-                        protocol: true,
-                        country: true,
-                        currentUsers: true,
-                        maxUsers: true,
-                        packageType: true,
-                        upstreamHost: true,
-                        upstreamPort: true,
-                        sessions: {
-                            select: {
-                                user: {
-                                    select: { username: true }
-                                }
-                            }
-                        }
+                sessions: {
+                    where: { status: 'ACTIVE' },
+                    include: {
+                        user: {
+                            select: { username: true, telegramId: true },
+                        },
                     },
                 },
             },
