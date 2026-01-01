@@ -188,7 +188,7 @@ export const Dashboard = () => {
                                     toast.error('Failed to sync config', { id: toastId });
                                 }
                             }}
-                            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-black text-white uppercase tracking-widest transition-all"
+                            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-black text-white uppercase tracking-widest transition-all cursor-pointer relative z-50 hover:scale-[1.02] active:scale-95 shadow-lg shadow-blue-600/20"
                         >
                             <RefreshCw size={14} />
                             Sync Proxy Config
