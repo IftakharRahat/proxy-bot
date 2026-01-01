@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Users, Server, BadgeDollarSign, Activity, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { Users, Server, BadgeDollarSign, Activity, TrendingUp, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
+import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 const StatCard = ({ title, value, subtext, icon: Icon, color, glow, loading }: any) => (
@@ -175,6 +176,23 @@ export const Dashboard = () => {
                                 </div>
                             );
                         })}
+
+                        {/* Sync Proxy Config Button */}
+                        <button
+                            onClick={async () => {
+                                const toastId = toast.loading('Syncing proxy config...');
+                                try {
+                                    await api.post('/admin/sync-config');
+                                    toast.success('3proxy configuration synced!', { id: toastId });
+                                } catch (err) {
+                                    toast.error('Failed to sync config', { id: toastId });
+                                }
+                            }}
+                            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-black text-white uppercase tracking-widest transition-all"
+                        >
+                            <RefreshCw size={14} />
+                            Sync Proxy Config
+                        </button>
                     </div>
 
                     <div className="mt-12 bg-white/[0.03] rounded-3xl p-6 border border-white/5">
