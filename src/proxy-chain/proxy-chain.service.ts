@@ -39,7 +39,7 @@ export class ProxyChainService implements OnModuleInit {
      * - Per-port allow lists
      */
     async rebuildConfig() {
-        this.logger.log('Rebuilding 3proxy config (GLOBAL USERS, NO FLUSH)');
+        this.logger.log('Rebuilding 3proxy config (GLOBAL USERS, NO FLUSH, MONITOR ENABLED)');
 
         const ports = await this.prisma.port.findMany({
             where: {
@@ -84,7 +84,10 @@ export class ProxyChainService implements OnModuleInit {
 # DO NOT EDIT MANUALLY
 # =====================================
 
-# daemon removed for systemd compatibility
+daemon
+# Monitor config file for changes (Auto-Reload)
+monitor ${this.configPath}
+
 nserver 1.1.1.1
 nserver 8.8.8.8
 nscache 65536
@@ -95,7 +98,7 @@ ${usersLine}
 
 # -------- DIAGNOSTIC PORT --------
 auth strong
-allow test
+allow test * * * *
 proxy -p30000
 `;
 
@@ -111,10 +114,11 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
+            // Explicit allow syntax to prevent parsing errors
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
 auth strong
-allow ${allowedUsers.join(',')}
+allow ${allowedUsers.join(',')} * * * *
 `;
 
             // Parent proxy
@@ -139,19 +143,18 @@ socks -p${port.localPort + 5000}
         }
 
         /* ─────────────────────────────────────────────
-           4️⃣ WRITE & RESTART
+           4️⃣ WRITE ONLY (NO RESTART)
         ───────────────────────────────────────────── */
 
         try {
             if (process.platform !== 'win32') {
                 await fs.promises.writeFile(this.configPath, config.trim() + '\n');
-                this.logger.log(`3proxy config written to ${this.configPath}`);
+                this.logger.log(`3proxy config written to ${this.configPath}. Monitor will auto-reload.`);
 
-                const { stdout, stderr } = await execAsync(this.reloadCommand);
-                if (stderr) {
-                    this.logger.warn(stderr);
-                }
-                this.logger.log('3proxy restarted successfully');
+                // REMOVED: Explicit restart command. 
+                // We rely on 'monitor' to reload the config gracefully.
+                // const { stdout, stderr } = await execAsync(this.reloadCommand);
+
             } else {
                 this.logger.warn('Windows detected: config generation only (dry run)');
             }
