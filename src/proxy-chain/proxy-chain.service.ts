@@ -61,11 +61,14 @@ nserver 1.1.1.1
 nscache 65536
 timeouts 1 5 30 60 180 1800 15 60
 
+# --- Global User Auth ---
+${usersLine}
+
 # --- Port Definitions (Isolated Blocks) ---
 
 # Diagnostics Port (Direct)
 flush
-${usersLine}auth strong
+auth strong
 allow test
 proxy -p30000
 
@@ -76,7 +79,6 @@ proxy -p30000
             if (port.upstreamHost && port.upstreamPort && port.localPort) {
                 config += `# Port ${port.id} (${port.country})\n`;
                 config += `flush\n`;
-                config += usersLine;
                 config += `auth strong\n`;
 
                 // CRITICAL: allow must come BEFORE parent for authenticated chaining
