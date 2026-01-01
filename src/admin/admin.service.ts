@@ -52,6 +52,12 @@ export class AdminService {
         });
     }
 
+    async syncProxyConfig() {
+        this.logger.log('Manual proxy config sync requested');
+        await this.proxyChain.rebuildConfig();
+        return { success: true, message: '3proxy configuration synchronized successfully' };
+    }
+
     async getPackageConfigs() {
         const configs = await this.prisma.packageConfig.findMany();
         if (configs.length === 0) {

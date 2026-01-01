@@ -94,6 +94,11 @@ export class AdminController {
         return this.adminService.importSelectedPorts(body.portIds, body.packageType);
     }
 
+    @Post('sync-config')
+    async syncConfig() {
+        return this.adminService.syncProxyConfig();
+    }
+
     // ========== BOT PRICING ENDPOINTS ==========
 
     @Get('bot-pricing')
