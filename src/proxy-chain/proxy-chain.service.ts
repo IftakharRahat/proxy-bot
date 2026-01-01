@@ -84,7 +84,7 @@ export class ProxyChainService implements OnModuleInit {
 # DO NOT EDIT MANUALLY
 # =====================================
 
-daemon
+# daemon removed for systemd compatibility
 nserver 1.1.1.1
 nserver 8.8.8.8
 nscache 65536
