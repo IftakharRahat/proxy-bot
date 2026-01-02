@@ -108,19 +108,21 @@ proxy -p30000
                 ? `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}`;
 
-            config += `
-# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) =====
-auth strong
-flush
-`;
-            // One user per 'allow' line (Safe for 3proxy ACL engine)
-            for (const u of allowedUsers) {
-                config += `allow ${u} 0.0.0.0/0\n`;
-            }
+            const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
 
             config += `
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP =====
+auth strong
+flush
+${allowLines}
 ${parent}
 proxy -p${port.localPort}
+
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS =====
+auth strong
+flush
+${allowLines}
+${parent}
 socks -p${socksPort}
 `;
         }
