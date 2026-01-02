@@ -126,25 +126,15 @@ auth strong
 allow ${allowedUsers.join(',')}
 `;
 
-            // Parent proxy
+            // Parent proxy (Upstream) - Using 'http' for chained connectivity
             if (port.upstreamUser && port.upstreamPass) {
                 config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}\n`;
             } else {
                 config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}\n`;
             }
 
-            // Bandwidth limits
-            if (port.packageType === 'Normal') {
-                config += `bandlimin 125000 *\nbandlimout 125000 *\n`;
-            } else if (port.packageType === 'Medium') {
-                config += `bandlimin 375000 *\nbandlimout 375000 *\n`;
-            }
-
-            // Services
-            config += `
-proxy -p${port.localPort}
-socks -p${port.localPort + 5000}
-`;
+            // Listeners
+            config += `proxy -p${port.localPort}\nsocks -p${port.localPort + 5000}\n`;
         }
 
         /* ─────────────────────────────────────────────
