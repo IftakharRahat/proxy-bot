@@ -77,7 +77,7 @@ export class ProxyChainService implements OnModuleInit {
         /* ───────────── 3️⃣ CONFIG CONSTRUCTION ───────────── */
         let config = `
 daemon
-maxconn 2000
+maxconn 500
 monitor ${this.configPath}
 
 log /var/log/3proxy.log D
@@ -92,6 +92,7 @@ ${usersLine}
 
 # ===== DIAGNOSTIC PORT =====
 auth strong
+flush
 allow test 0.0.0.0/0
 proxy -p30000
 `;
@@ -110,6 +111,7 @@ proxy -p30000
             config += `
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) =====
 auth strong
+flush
 `;
             // One user per 'allow' line (Safe for 3proxy ACL engine)
             for (const u of allowedUsers) {
