@@ -434,6 +434,9 @@ export class BotUpdateService {
 
             for (const session of sessions) {
                 const expiresIn = Math.ceil((session.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60));
+
+                console.log(`[MyAssets] Session ${session.id} | PortType: ${session.port.packageType} | Host: ${session.port.host} | Upstream: ${session.port.upstreamHost}`);
+
                 const isHigh = session.port.packageType === 'High';
                 const displayHost = isHigh ? session.port.upstreamHost : session.port.host;
                 const displayPort = isHigh ? session.port.port : (session.port.localPort || session.port.port);
