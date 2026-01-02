@@ -113,11 +113,13 @@ export const ProxiesPage = () => {
                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Geographical Node</p>
                                                 <span className={clsx(
                                                     "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border",
-                                                    port.packageType === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                                                        port.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                                                            "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                    port.packageType === 'High'
+                                                        ? (port.currentUsers > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")
+                                                        : "bg-blue-500/10 border-blue-500/20 text-blue-400"
                                                 )}>
-                                                    {port.packageType === 'High' ? 'Dedicated' : port.packageType === 'Medium' ? '3 Mbps' : '1 Mbps'}
+                                                    {port.packageType === 'High'
+                                                        ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
+                                                        : `Shared (${(port.maxUsers || 3) - (port.currentUsers || 0)} slots remaining)`}
                                                 </span>
                                             </div>
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{port.country || 'Unknown'}</h3>
@@ -237,7 +239,7 @@ export const ProxiesPage = () => {
                             <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
                                 <th className="px-8 py-5">Node Context</th>
                                 <th className="px-8 py-5">Endpoints (HTTP / SOCKS5)</th>
-                                <th className="px-8 py-5">Package Tier</th>
+                                <th className="px-8 py-5">Status</th>
                                 <th className="px-8 py-5">Substrate Link</th>
                                 <th className="px-8 py-5">Sessions</th>
                                 <th className="px-8 py-5 text-center">Operations</th>
@@ -266,11 +268,13 @@ export const ProxiesPage = () => {
                                     <td className="px-8 py-6">
                                         <span className={clsx(
                                             "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                            port.packageType === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                                                port.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                                                    "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                            port.packageType === 'High'
+                                                ? (port.currentUsers > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")
+                                                : "bg-blue-500/10 border-blue-500/20 text-blue-400"
                                         )}>
-                                            {port.packageType === 'High' ? 'Dedicated' : port.packageType === 'Medium' ? '3 Mbps' : '1 Mbps'}
+                                            {port.packageType === 'High'
+                                                ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
+                                                : `Shared (${(port.maxUsers || 3) - (port.currentUsers || 0)} slots remaining)`}
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">
@@ -308,7 +312,6 @@ export const ProxiesPage = () => {
                     </table>
                 </div>
             )}
-
         </div>
     );
 };

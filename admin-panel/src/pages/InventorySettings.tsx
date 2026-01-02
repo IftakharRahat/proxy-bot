@@ -219,7 +219,7 @@ export const InventorySettings: React.FC = () => {
                                         pkg.name === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
                                             "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                 )}>
-                                    {pkg.name === 'High' ? 'Dedicated' : pkg.name === 'Medium' ? '3 Mbps' : '1 Mbps'} Tier
+                                    {pkg.name === 'High' ? 'Dedicated' : 'Shared'} Tier
                                 </span>
                                 <Zap className="text-slate-700 group-hover:text-amber-400 transition-colors" size={16} />
                             </div>
@@ -310,8 +310,8 @@ export const InventorySettings: React.FC = () => {
                             onChange={(e) => setRefillPkg(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-bold outline-none focus:border-purple-500/50 transition-all appearance-none"
                         >
-                            <option value="Normal">⚡ 1 Mbps (Shared)</option>
-                            <option value="Medium">🚀 3 Mbps (Shared)</option>
+                            <option value="Normal">⚡ Shared (Standard)</option>
+                            <option value="Medium">🚀 Shared (Premium)</option>
                             <option value="High">💎 Dedicated (Private)</option>
                         </select>
                     </div>
@@ -397,7 +397,7 @@ export const InventorySettings: React.FC = () => {
                             <div className="flex justify-between items-center py-4 border-b border-white/5">
                                 <span className="text-slate-400 text-sm font-bold italic">Resource Tier</span>
                                 <span className="text-white font-black uppercase tracking-tight">
-                                    {refillPkg === 'High' ? 'Dedicated' : refillPkg === 'Medium' ? '3 Mbps' : '1 Mbps'} Cluster
+                                    {refillPkg === 'High' ? 'Dedicated' : 'Shared'} Cluster
                                 </span>
                             </div>
                             <div className="flex justify-between items-center py-4 border-b border-white/5">
@@ -550,9 +550,9 @@ export const InventorySettings: React.FC = () => {
                                     onChange={(e) => setRefillPkg(e.target.value)}
                                     className="bg-slate-800 border border-white/10 rounded-xl px-4 py-2 text-white text-sm"
                                 >
-                                    <option value="Normal">1 Mbps Tier</option>
-                                    <option value="Medium">3 Mbps Tier</option>
-                                    <option value="High">Dedicated Tier</option>
+                                    <option value="Normal">Shared (Standard)</option>
+                                    <option value="Medium">Shared (Premium)</option>
+                                    <option value="High">Dedicated (Private)</option>
                                 </select>
                                 <button
                                     onClick={handleImportSelected}

@@ -46,9 +46,9 @@ export class BotUpdateService {
 
         // Initialize structure with names
         const packages: Record<string, PackageTier> = {
-            normal: { name: '⚡ 1 Mbps (Max 3 Users)', prices: {} },
-            medium: { name: '🚀 3 Mbps (Max 3 Users)', prices: {} },
-            high: { name: '💎 Dedicated (Single User)', prices: {} },
+            normal: { name: '⚡ Shared (Standard)', prices: {} },
+            medium: { name: '🚀 Shared (Premium)', prices: {} },
+            high: { name: '💎 Dedicated (Private)', prices: {} },
         };
 
         if (pricing.length > 0) {
