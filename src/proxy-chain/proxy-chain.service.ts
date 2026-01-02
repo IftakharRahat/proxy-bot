@@ -91,7 +91,7 @@ ${usersLine}
 
 # ===== DIAGNOSTIC PORT =====
 auth strong
-allow test
+allow test 0.0.0.0/0
 proxy -p30000
 `;
 
@@ -100,7 +100,6 @@ proxy -p30000
             if (!port.localPort || !port.upstreamHost || !port.upstreamPort) continue;
 
             const allowedUsers = ['test', ...port.sessions.map(s => s.proxyUser)];
-            const allowLine = `allow ${allowedUsers.join(' ')}`;
             const socksPort = port.localPort + 5000;
 
             const parent = port.upstreamUser
@@ -110,7 +109,13 @@ proxy -p30000
             config += `
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) =====
 auth strong
-${allowLine}
+`;
+            // One user per 'allow' line (Safe for 3proxy ACL engine)
+            for (const u of allowedUsers) {
+                config += `allow ${u} 0.0.0.0/0\n`;
+            }
+
+            config += `
 ${parent}
 proxy -p${port.localPort}
 socks -p${socksPort}
@@ -123,7 +128,7 @@ socks -p${socksPort}
         try {
             if (process.platform !== 'win32') {
                 await fs.promises.writeFile(this.configPath, config.trim() + '\n');
-                this.logger.log('3proxy config written successfully (Golden Rules Applied)');
+                this.logger.log('3proxy config written successfully (Explicit ACL Pattern applied)');
             } else {
                 this.logger.warn('Windows detected: config generation only (dry run)');
             }
