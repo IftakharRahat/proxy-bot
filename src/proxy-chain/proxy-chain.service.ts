@@ -118,23 +118,22 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
-            // Isolated and compact allow syntax (Flush + Comma separated)
+            // Chained Parent Configuration
+            const parentBase = `${port.upstreamHost} ${port.upstreamPort}${port.upstreamUser ? ` ${port.upstreamUser} ${port.upstreamPass}` : ''}`;
+
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
-flush
 auth strong
 allow ${allowedUsers.join(',')}
+
+# HTTP Parent
+parent 1000 http ${parentBase}
+proxy -p${port.localPort}
+
+# SOCKS Parent (Using 'connect' for better chaining)
+parent 1000 connect ${parentBase}
+socks -p${port.localPort + 5000}
 `;
-
-            // Parent proxy (Upstream) - Using 'http' for chained connectivity
-            if (port.upstreamUser && port.upstreamPass) {
-                config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}\n`;
-            } else {
-                config += `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}\n`;
-            }
-
-            // Listeners
-            config += `proxy -p${port.localPort}\nsocks -p${port.localPort + 5000}\n`;
         }
 
         /* ─────────────────────────────────────────────
