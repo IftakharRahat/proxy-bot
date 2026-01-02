@@ -77,6 +77,7 @@ export class ProxyChainService implements OnModuleInit {
         /* ───────────── 3️⃣ CONFIG CONSTRUCTION ───────────── */
         let config = `
 daemon
+maxconn 2000
 monitor ${this.configPath}
 
 log /var/log/3proxy.log D
