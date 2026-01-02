@@ -112,19 +112,27 @@ proxy -p30000
                 ? `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}`;
 
+            // Bandwidth Limiting (Traffic Shaping)
+            let bandlim = '';
+            if (port.packageType === 'Normal') {
+                bandlim = 'bandlimin 125000 *\nbandlimout 125000 *\n';
+            } else if (port.packageType === 'Medium') {
+                bandlim = 'bandlimin 375000 *\nbandlimout 375000 *\n';
+            }
+
             config += `
-# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP =====
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP (${port.packageType}) =====
 auth strong
 flush
 ${allowLines}
-${parentHTTP}
+${bandlim}${parentHTTP}
 proxy -p${port.localPort}
 
-# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS =====
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS (${port.packageType}) =====
 auth strong
 flush
 ${allowLines}
-${parentConnect}
+${bandlim}${parentConnect}
 socks -a -p${socksPort}
 `;
         }
