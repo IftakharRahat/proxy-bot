@@ -118,11 +118,11 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
-            // Explicit allow syntax to prevent parsing errors
+            // Standard allow syntax (Space separated)
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
 auth strong
-allow ${allowedUsers.join(',')}
+allow ${allowedUsers.join(' ')}
 `;
 
             // Parent proxy
