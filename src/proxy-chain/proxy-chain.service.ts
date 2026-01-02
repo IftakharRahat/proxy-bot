@@ -88,6 +88,10 @@ daemon
 # Monitor config file for changes (Auto-Reload)
 monitor ${this.configPath}
 
+# Logging configuration (Daily rotation, local file)
+log /var/log/3proxy.log D
+logformat "L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T"
+
 nserver 1.1.1.1
 nserver 8.8.8.8
 nscache 65536
@@ -98,7 +102,7 @@ ${usersLine}
 
 # -------- DIAGNOSTIC PORT --------
 auth strong
-allow test * * * *
+allow test
 proxy -p30000
 `;
 
@@ -118,7 +122,7 @@ proxy -p30000
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
 auth strong
-allow ${allowedUsers.join(',')} * * * *
+allow ${allowedUsers.join(',')}
 `;
 
             // Parent proxy
