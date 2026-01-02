@@ -144,10 +144,27 @@ export class SessionManagerService {
 
         this.logger.log(`Session created: User ${userId} -> Port ${portId}, expires ${expiresAt}`);
 
+        // CRITICAL: Premium (High) tier users get DIRECT connection to Novproxy upstream
+        // Shared (Normal/Medium) users go through VPS 3proxy chain
+        if (effectiveTier === 'High' && session.port.upstreamHost && session.port.upstreamPort) {
+            this.logger.log(`Premium user gets DIRECT Novproxy connection: ${session.port.upstreamHost}:${session.port.upstreamPort}`);
+            return {
+                sessionId: session.id,
+                host: session.port.upstreamHost,     // Direct Novproxy IP
+                port: session.port.upstreamPort,     // Direct Novproxy Port
+                username: session.proxyUser,
+                password: session.proxyPass,
+                expiresAt: session.expiresAt,
+                country: session.port.country,
+                protocol: session.port.protocol,
+            };
+        }
+
+        // Shared users go through VPS 3proxy chain (with bandwidth limiting)
         return {
             sessionId: session.id,
             host: session.port.host,
-            port: session.port.localPort || session.port.port, // Use localPort for shared if available
+            port: session.port.localPort || session.port.port,
             username: session.proxyUser,
             password: session.proxyPass,
             expiresAt: session.expiresAt,
