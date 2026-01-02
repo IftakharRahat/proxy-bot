@@ -102,7 +102,7 @@ ${usersLine}
 
 # -------- DIAGNOSTIC PORT --------
 auth strong
-allow test * * * *
+allow test
 proxy -p30000
 `;
 
@@ -118,11 +118,12 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
-            // Standard allow syntax (Comma separated + Wildcards)
+            // Most stable allow syntax: Separate lines for each user
+            const allowLines = allowedUsers.map(u => `allow ${u}`).join('\n');
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
 auth strong
-allow ${allowedUsers.join(',')} * * * *
+${allowLines}
 `;
 
             // Parent proxy
