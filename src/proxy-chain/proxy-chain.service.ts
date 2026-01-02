@@ -114,11 +114,13 @@ proxy -p30000
 
             // Bandwidth Limiting (Traffic Shaping in bits per second)
             let bandlim = '';
-            if (port.packageType === 'Normal') {
+            const type = port.packageType.toLowerCase();
+            if (type === 'normal') {
                 bandlim = 'bandlimin 1000000 *\nbandlimout 1000000 *\n';
-            } else if (port.packageType === 'Medium') {
+            } else if (type === 'medium') {
                 bandlim = 'bandlimin 3000000 *\nbandlimout 3000000 *\n';
             }
+            // 'high' (Premium) gets no bandlim -> Unlimited speed
 
             config += `
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP (${port.packageType}) =====
