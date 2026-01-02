@@ -293,8 +293,11 @@ export class BotUpdateService {
             `🏳️ <b>Select Country</b>\n\n` +
             `Choose your preferred location:`,
             Markup.inlineKeyboard([
-                [Markup.button.callback('🇺🇸 United States', `ctry_${tier}_${duration}_${rotation}_US`)],
-                [Markup.button.callback('🇨🇦 Canada', `ctry_${tier}_${duration}_${rotation}_Canada`)],
+                [
+                    Markup.button.callback('🇺🇸 United States', `ctry_${tier}_${duration}_${rotation}_US`),
+                    Markup.button.callback('🇨🇦 Canada', `ctry_${tier}_${duration}_${rotation}_Canada`),
+                ],
+                [Markup.button.callback('🎲 Random Country', `ctry_${tier}_${duration}_${rotation}_Random`)],
                 [Markup.button.callback('⬅️ Back', `tier_${tier}`)],
             ]),
         );
@@ -328,7 +331,7 @@ export class BotUpdateService {
                 // Actually, the previous code had a syntax that might not work: (this.prisma.port as any).fields.maxUsers
                 // We will just fetch ports that are active and match tier/country.
                 packageType: tier.charAt(0).toUpperCase() + tier.slice(1),
-                country: country === 'US' ? { in: ['US', 'USA', 'United States', 'Random'] } : { in: ['Canada', 'CA', 'CAN', 'Random'] },
+                country: country === 'Random' ? undefined : (country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] }),
             },
             take: 20,
         });
