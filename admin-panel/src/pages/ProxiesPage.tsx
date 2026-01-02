@@ -119,7 +119,7 @@ export const ProxiesPage = () => {
                                                 )}>
                                                     {port.packageType === 'High'
                                                         ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
-                                                        : `Shared (${(port.maxUsers || 3) - (port.currentUsers || 0)} slots remaining)`}
+                                                        : ((port.currentUsers || 0) >= 3 ? 'Full' : `Shared (${3 - (port.currentUsers || 0)} slots remaining)`)}
                                                 </span>
                                             </div>
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{port.country || 'Unknown'}</h3>
@@ -274,7 +274,7 @@ export const ProxiesPage = () => {
                                         )}>
                                             {port.packageType === 'High'
                                                 ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
-                                                : `Shared (${(port.maxUsers || 3) - (port.currentUsers || 0)} slots remaining)`}
+                                                : ((port.currentUsers || 0) >= 3 ? 'Full' : `Shared (${3 - (port.currentUsers || 0)} slots remaining)`)}
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">

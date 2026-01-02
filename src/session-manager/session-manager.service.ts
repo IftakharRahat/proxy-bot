@@ -115,10 +115,12 @@ export class SessionManagerService {
         // Hybrid Logic:
         // A. High Tier (Dedicated) -> Direct Provider Sync
         // B. Normal/Medium (Shared) -> VPS 3proxy Sync
+        // IMPORTANT: Use the NEWLY ASSIGNED tier (from purchasedTier), not the old port.packageType
+        const effectiveTier = purchasedTier ? (purchasedTier.charAt(0).toUpperCase() + purchasedTier.slice(1)) : port.packageType;
 
         try {
-            if (port.packageType === 'High') {
-                // Direct Sync with Novproxy
+            if (effectiveTier === 'High') {
+                // Direct Sync with Novproxy - User gets DIRECT connection to residential provider
                 await this.novproxy.batchEditPorts(
                     [portId],
                     {
@@ -128,13 +130,13 @@ export class SessionManagerService {
                         minute: session.rotationPeriod,
                     }
                 );
-                this.logger.log(`Direct Novproxy sync successful for Port ${portId}`);
+                this.logger.log(`Direct Novproxy sync successful for Port ${portId} (Premium Tier)`);
             } else {
-                // Shared Port -> Update Local VPS Config
+                // Shared Port -> Update Local VPS Config (with bandwidth limiting)
                 // We do NOT change upstream credentials (batchEditPorts) because other users share it.
                 // We just ensure the local proxy allows this new user.
                 await this.proxyChain.rebuildConfig();
-                this.logger.log(`VPS Proxy Chain updated for Port ${portId}`);
+                this.logger.log(`VPS Proxy Chain updated for Port ${portId} (Shared Tier)`);
             }
         } catch (error) {
             this.logger.error(`Failed to sync proxy credentials for Port ${portId}: ${error.message}`);
