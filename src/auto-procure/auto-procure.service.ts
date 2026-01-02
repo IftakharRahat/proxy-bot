@@ -23,15 +23,17 @@ export class AutoProcurementService {
     async checkAndRefill(tier: string, country: string): Promise<boolean> {
         this.logger.log(`Checking inventory for ${tier} (${country})...`);
 
-        // 1. Check if any slots available
+        // 1. Check if any slots available (category-agnostic)
+        // High needs currentUsers == 0
+        // Others need currentUsers < maxUsers
         const ports = await this.prisma.port.findMany({
             where: {
                 isActive: true,
-                packageType: tier,
-                country: country,
+                currentUsers: tier === 'High' ? 0 : { lt: 3 },
+                country: country === 'Random' ? undefined : country,
             },
         });
-        const available = ports.filter(p => p.currentUsers < p.maxUsers).length;
+        const available = ports.filter(p => p.currentUsers < (p.maxUsers || 3)).length;
 
         if (available > 0) {
             this.logger.log(`Slots available (${available}), no refill needed.`);

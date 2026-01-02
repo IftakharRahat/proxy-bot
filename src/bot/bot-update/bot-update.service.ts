@@ -46,9 +46,9 @@ export class BotUpdateService {
 
         // Initialize structure with names
         const packages: Record<string, PackageTier> = {
-            normal: { name: '⚡ Shared (Standard)', prices: {} },
-            medium: { name: '🚀 Shared (Premium)', prices: {} },
-            high: { name: '💎 Dedicated (Private)', prices: {} },
+            normal: { name: '⚡ Normal', prices: {} },
+            medium: { name: '🚀 Medium', prices: {} },
+            high: { name: '💎 Premium', prices: {} },
         };
 
         if (pricing.length > 0) {
@@ -103,6 +103,7 @@ export class BotUpdateService {
                 portId,
                 hours,
                 rotation,
+                tier,
             );
 
             await ctx.replyWithHTML(
@@ -320,23 +321,20 @@ export class BotUpdateService {
         const pkg = packages[tier];
         const price = pkg?.prices[duration as '24h' | '3d' | '7d' | '30d'];
 
-        // Show available ports for this tier (Filtered to US/Canada)
+        // Show available ports based on tier requirements
+        // Premium (High) needs an empty port (currentUsers == 0)
+        // Normal/Medium need a port with capacity (currentUsers < 3)
         let availablePorts = await this.prisma.port.findMany({
             where: {
                 isActive: true,
-                currentUsers: { lt: 5 }, // Hardcoded 5 as maxUsers check is tricky in raw prisma here without join
-                // Better: currentUsers < maxUsers. Prisma doesn't support comparing two columns directly in where easily.
-                // We will filter in memory or rely on 'currentUsers' check logic if simple. 
-                // However, let's stick to the existing logic but refine it.
-                // Actually, the previous code had a syntax that might not work: (this.prisma.port as any).fields.maxUsers
-                // We will just fetch ports that are active and match tier/country.
-                packageType: tier.charAt(0).toUpperCase() + tier.slice(1),
+                currentUsers: tier === 'high' ? 0 : { lt: 3 },
+                // Category-agnostic: don't filter by packageType here if we want to use 'Normal' ports for 'High'
                 country: country === 'Random' ? undefined : (country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] }),
             },
             take: 20,
         });
 
-        // Filter for capacity in memory if Prisma limitation exists (comparing col to col)
+        // Filter for capacity in memory just in case (prisma col-to-col limit)
         availablePorts = availablePorts.filter(p => p.currentUsers < p.maxUsers);
 
         if (availablePorts.length === 0) {
@@ -364,7 +362,7 @@ export class BotUpdateService {
         if (availablePorts.length === 0) {
             await ctx.replyWithHTML(
                 `❌ <b>No Available Ports</b>\n\n` +
-                `All ports for ${tier} are currently at capacity. Please try again later.`,
+                `All ports for ${pkg.name} are currently at capacity. Please try again later.`,
                 Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back', 'buy')]]),
             );
             if ('answerCbQuery' in ctx) await (ctx as any).answerCbQuery();

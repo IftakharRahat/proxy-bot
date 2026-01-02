@@ -34,6 +34,7 @@ export class SessionManagerService {
         portId: number,
         durationHours: number,
         rotationPeriod: number = 30, // Default 30 mins
+        purchasedTier?: string, // Added to promote port type
         customUser?: string,
         customPass?: string,
     ) {
@@ -78,10 +79,17 @@ export class SessionManagerService {
 
         // Create the session
         const session = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            // Increment port user count
+            // Increment port user count and update tier if provided
+            const tierName = purchasedTier ? (purchasedTier.charAt(0).toUpperCase() + purchasedTier.slice(1)) : port.packageType;
+            const maxUsers = tierName === 'High' ? 1 : 3;
+
             await tx.port.update({
                 where: { id: portId },
-                data: { currentUsers: { increment: 1 } },
+                data: {
+                    currentUsers: { increment: 1 },
+                    packageType: tierName,
+                    maxUsers: maxUsers
+                },
             });
 
             // Create the session record
