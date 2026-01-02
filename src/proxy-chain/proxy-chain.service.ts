@@ -104,26 +104,28 @@ proxy -p30000
             const allowedUsers = ['test', ...port.sessions.map(s => s.proxyUser)];
             const socksPort = port.localPort + 5000;
 
-            const parent = port.upstreamUser
+            const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
+            const parentHTTP = port.upstreamUser
                 ? `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}`;
-
-            const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
+            const parentConnect = port.upstreamUser
+                ? `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
+                : `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}`;
 
             config += `
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP =====
 auth strong
 flush
 ${allowLines}
-${parent}
+${parentHTTP}
 proxy -p${port.localPort}
 
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS =====
 auth strong
 flush
 ${allowLines}
-${parent}
-socks -p${socksPort}
+${parentConnect}
+socks -a -p${socksPort}
 `;
         }
 
@@ -133,7 +135,7 @@ socks -p${socksPort}
         try {
             if (process.platform !== 'win32') {
                 await fs.promises.writeFile(this.configPath, config.trim() + '\n');
-                this.logger.log('3proxy config written successfully (Explicit ACL Pattern applied)');
+                this.logger.log('3proxy config written successfully (Isolated Services + CONNECT Tunneling)');
             } else {
                 this.logger.warn('Windows detected: config generation only (dry run)');
             }
