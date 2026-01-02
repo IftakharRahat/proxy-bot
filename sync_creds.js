@@ -34,7 +34,7 @@ async function sync() {
         form.append('username', session.proxyUser);
         form.append('password', session.proxyPass);
         form.append('region', session.port.country || 'Random');
-        form.append('minute', '120'); // Try standard 120 minutes limit
+        form.append('minute', '10'); // Try short 10 minutes limit
         form.append('format', '1');
 
         console.log('🔄 Syncing with Novproxy...');
