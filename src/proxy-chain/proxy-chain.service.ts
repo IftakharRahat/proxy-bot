@@ -68,9 +68,11 @@ export class ProxyChainService implements OnModuleInit {
             }
         }
 
-        const usersLines = [...globalUsers.entries()]
-            .map(([u, p]) => `users ${u}:CL:${p}`)
-            .join('\n');
+        const usersLine =
+            'users ' +
+            [...globalUsers.entries()]
+                .map(([u, p]) => `${u}:CL:${p}`)
+                .join(' ');
 
         /* ─────────────────────────────────────────────
            2️⃣ CONFIG HEADER
@@ -96,7 +98,7 @@ nscache 65536
 timeouts 1 5 30 60 180 1800 15 60
 
 # -------- GLOBAL AUTH --------
-${usersLines}
+${usersLine}
 
 # -------- DIAGNOSTIC PORT --------
 auth strong
