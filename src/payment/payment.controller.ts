@@ -101,28 +101,20 @@ export class PaymentController {
      */
     @Post('uddoktapay/webhook')
     async handleUddoktaPayWebhook(@Body() payload: any) {
-        // payload generally contains { status: 'COMPLETED', invoice_id: '...', metadata: { userId: ... }, amount: ... }
         this.logger.log(`UddoktaPay Webhook: ${JSON.stringify(payload)}`);
 
-        // Verify secret if provided in headers (skipped for now as headers not passed in decorator)
-
         if (payload.status === 'COMPLETED') {
-            // Check if transaction already processed
-            // Note: In a real app, use the 'transaction_id' from payload as unique identifier
             const trxId = payload.transaction_id || payload.invoice_id;
+            const gateway = this.mapPaymentMethod(payload.payment_method);
 
             try {
-                // We create a completed transaction directly
-                // PaymentGateway.NAGAD is used as placeholder, we might want to dynamically set it based on 'payment_method' if available
                 await this.paymentService.createTransaction(
                     payload.metadata.userId,
                     Number(payload.amount),
-                    PaymentGateway.BKASH, // Defaulting to one, ideally map payload.payment_method
+                    gateway,
                     trxId
                 );
 
-                // Then verify it immediately to credit balance
-                // Find it first (createTransaction returns it)
                 const trx = await this.paymentService.getUserTransactions(payload.metadata.userId);
                 const recentTrx = trx.find(t => t.trxId === trxId);
 
@@ -149,18 +141,17 @@ export class PaymentController {
     async verifyUddoktaPayInvoice(@Body() body: { invoice_id: string }) {
         const { invoice_id } = body;
 
-        // 1. Verify against Gateway
         const response = await this.uddoktaPayService.verifyPayment(invoice_id);
 
         if (response && response.status === 'COMPLETED') {
             const trxId = response.transaction_id || response.invoice_id;
+            const gateway = this.mapPaymentMethod(response.payment_method);
 
             try {
-                // Same logic as webhook
                 await this.paymentService.createTransaction(
                     response.metadata.userId,
                     Number(response.amount),
-                    PaymentGateway.BKASH,
+                    gateway,
                     trxId
                 );
 
@@ -179,6 +170,14 @@ export class PaymentController {
         }
 
         return { success: false, message: 'Payment not completed' };
+    }
+
+    private mapPaymentMethod(method: string): PaymentGateway {
+        if (!method) return PaymentGateway.BKASH;
+        const low = method.toLowerCase();
+        if (low.includes('nagad')) return PaymentGateway.NAGAD;
+        if (low.includes('rocket')) return PaymentGateway.ROCKET;
+        return PaymentGateway.BKASH;
     }
 
     /**
