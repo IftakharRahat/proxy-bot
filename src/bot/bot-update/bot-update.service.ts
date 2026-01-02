@@ -110,7 +110,7 @@ export class BotUpdateService {
                 `✅ <b>Purchase Successful!</b>\n\n` +
                 `🌍 <b>${session.country} Proxy</b>\n` +
                 `<b>HTTP:</b>  <code>${session.host}:${session.port}</code>\n` +
-                `<b>SOCKS5:</b> <code>${session.host}:${session.port + 5000}</code>\n` +
+                `<b>SOCKS5:</b> <code>${session.host}:${tier === 'High' ? session.port : session.port + 5000}</code>\n` +
                 `User: <code>${session.username}</code>\n` +
                 `Pass: <code>${session.password}</code>\n\n` +
                 `Expires: ${session.expiresAt.toLocaleString()}\n\n` +
@@ -434,12 +434,15 @@ export class BotUpdateService {
 
             for (const session of sessions) {
                 const expiresIn = Math.ceil((session.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60));
-                const socksPort = (session.port.localPort || session.port.port) + 5000;
+                const isHigh = session.port.packageType === 'High';
+                const displayHost = isHigh ? session.port.upstreamHost : session.port.host;
+                const displayPort = isHigh ? session.port.port : (session.port.localPort || session.port.port);
+                const displaySocksPort = isHigh ? session.port.port : ((session.port.localPort || session.port.port) + 5000);
 
                 message +=
                     `🔹 <b>${session.port.country} Proxy</b>\n` +
-                    `   <b>HTTP:</b>  <code>${session.port.host}:${session.port.localPort || session.port.port}</code>\n` +
-                    `   <b>SOCKS5:</b> <code>${session.port.host}:${socksPort}</code>\n` +
+                    `   <b>HTTP:</b>  <code>${displayHost}:${displayPort}</code>\n` +
+                    `   <b>SOCKS5:</b> <code>${displayHost}:${displaySocksPort}</code>\n` +
                     `   User: <code>${session.proxyUser}</code>\n` +
                     `   Pass: <code>${session.proxyPass}</code>\n` +
                     `   ⏰ Expires in: ${expiresIn}h\n\n`;
