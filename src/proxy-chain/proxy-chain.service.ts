@@ -119,13 +119,11 @@ proxy -p30000
 
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
-# Isolated Parents
-parent 1000 http ${parentBase} * * * ${port.localPort}
-parent 1000 http ${parentBase} * * * ${socksPort}
+auth strong
+allow ${userList}
 
-# Isolated ACLs
-allow ${userList} * * * ${port.localPort}
-allow ${userList} * * * ${socksPort}
+# Upstream Parent
+parent 1000 http ${parentBase}
 
 proxy -p${port.localPort}
 socks -p${socksPort}
