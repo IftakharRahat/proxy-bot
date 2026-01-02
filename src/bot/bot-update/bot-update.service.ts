@@ -25,6 +25,7 @@ const DURATIONS: Record<string, number> = {
 @Injectable()
 export class BotUpdateService {
     private readonly logger = new Logger(BotUpdateService.name);
+    private readonly pendingBalanceInput = new Set<string>();
 
     constructor(
         private prisma: PrismaService,
@@ -280,39 +281,12 @@ export class BotUpdateService {
             return;
         }
 
-        // High package users can select rotation period
-        if (tier === 'high') {
-            await ctx.replyWithHTML(
-                `⏱ <b>Choose Rotation Period</b>\n\n` +
-                `How often should your IP address change?`,
-                Markup.inlineKeyboard([
-                    [
-                        Markup.button.callback('10 Mins', `rot_${tier}_${duration}_10`),
-                        Markup.button.callback('30 Mins', `rot_${tier}_${duration}_30`),
-                    ],
-                    [
-                        Markup.button.callback('60 Mins', `rot_${tier}_${duration}_60`),
-                    ],
-                    [Markup.button.callback('⬅️ Back', `dur_${tier}_${duration}`)],
-                ]),
-            );
-            await (ctx as any).answerCbQuery();
-            return;
-        }
-
-        // Normal/Medium go to Country Selection (Rotation fixed at 30m)
-        await this.askCountrySelection(ctx, tier, duration, 30);
+        // All tiers (Normal/Medium/High) now go straight to Country Selection
+        // Rotation is disabled globally, but we pass 0 or 30 as a dummy value 
+        // to maintain compatibility with existing session creation methods.
+        await this.askCountrySelection(ctx, tier, duration, 0);
     }
 
-    @Action(/rot_(.+)_(.+)_(.+)/)
-    async onRotationSelect(@Ctx() ctx: Context) {
-        const match = (ctx as any).match;
-        const tier = match[1] as string;
-        const duration = match[2] as '24h' | '3d' | '7d' | '30d';
-        const rotation = parseInt(match[3], 10);
-
-        await this.askCountrySelection(ctx, tier, duration, rotation);
-    }
 
     private async askCountrySelection(ctx: Context, tier: string, duration: string, rotation: number) {
         await ctx.replyWithHTML(
@@ -321,7 +295,7 @@ export class BotUpdateService {
             Markup.inlineKeyboard([
                 [Markup.button.callback('🇺🇸 United States', `ctry_${tier}_${duration}_${rotation}_US`)],
                 [Markup.button.callback('🇨🇦 Canada', `ctry_${tier}_${duration}_${rotation}_Canada`)],
-                [Markup.button.callback('⬅️ Back', tier === 'high' ? `dur_${tier}_${duration}` : `tier_${tier}`)],
+                [Markup.button.callback('⬅️ Back', `tier_${tier}`)],
             ]),
         );
         if ('answerCbQuery' in ctx) await (ctx as any).answerCbQuery();
@@ -513,73 +487,69 @@ export class BotUpdateService {
         const user = await this.ensureUser(ctx);
         if (!user) return;
 
-        // Fetch presets dynamically
-        const presets = await this.prisma.balancePreset.findMany({
-            where: { isActive: true },
-            orderBy: { displayOrder: 'asc' },
-        });
-
-        // If no presets, fallback to defaults (or seed them)
-        const buttons = [];
-        if (presets.length > 0) {
-            presets.forEach(p => {
-                buttons.push([Markup.button.callback(p.label, `pay_${p.amount}`)]);
-            });
-        } else {
-            // Fallback
-            buttons.push([Markup.button.callback('৳100', 'pay_100')]);
-            buttons.push([Markup.button.callback('৳500', 'pay_500')]);
-        }
-
-        buttons.push([Markup.button.callback('⬅️ Back', 'start')]);
+        this.pendingBalanceInput.add(user.telegramId);
 
         await ctx.replyWithHTML(
             `💰 <b>Add Balance</b>\n\n` +
-            `Choose amount to add:`,
-            Markup.inlineKeyboard(buttons),
+            `Please type the amount of balance you want to add (e.g., 250).\n\n` +
+            `<i>The minimum amount is ৳10.</i>`,
+            Markup.inlineKeyboard([
+                [Markup.button.callback('⬅️ Cancel', 'start')],
+            ]),
         );
 
-        await (ctx as any).answerCbQuery();
+        if ('answerCbQuery' in ctx) {
+            await (ctx as any).answerCbQuery();
+        }
     }
 
-    @Action(/pay_(\d+)/)
-    async onPayAmount(@Ctx() ctx: Context) {
-        const match = (ctx as any).match;
-        const amount = parseInt(match[1], 10);
+    @On('text')
+    async onTextMessage(@Ctx() ctx: Context) {
         const user = await this.ensureUser(ctx);
-
         if (!user) return;
 
-        try {
-            await ctx.replyWithChatAction('typing');
+        if (this.pendingBalanceInput.has(user.telegramId)) {
+            const text = (ctx.message as any).text;
+            const amount = parseInt(text, 10);
 
-            // Name from telegram
-            const fullName = [ctx.from?.first_name, ctx.from?.last_name].filter(Boolean).join(' ') || 'ProxyUser';
+            if (isNaN(amount) || amount < 10) {
+                await ctx.replyWithHTML(
+                    `❌ <b>Invalid Amount</b>\n\n` +
+                    `Please enter a valid number (minimum ৳10).`
+                );
+                return;
+            }
 
-            // Call PaymentService (which calls UddoktaPay)
-            const charge = await this.uddoktaPayService.createCharge(
-                amount,
-                fullName,
-                'no-email@example.com', // Optional email
-                { userId: user.id }
-            );
+            this.pendingBalanceInput.delete(user.telegramId);
 
-            await ctx.replyWithHTML(
-                `💳 <b>Pamyent Link Generated</b>\n\n` +
-                `Amount: ৳${amount}\n` +
-                `Click the button below to pay via bKash/Nagad securely.`,
-                Markup.inlineKeyboard([
-                    [Markup.button.url('💸 Pay Now via UddoktaPay', charge.payment_url)],
-                    [Markup.button.callback('⬅️ Cancel', 'add_balance')],
-                ])
-            );
+            try {
+                await ctx.replyWithChatAction('typing');
+                const fullName = [ctx.from?.first_name, ctx.from?.last_name].filter(Boolean).join(' ') || 'ProxyUser';
 
-        } catch (error) {
-            this.logger.error(`Payment link gen failed: ${error.message}`);
-            await ctx.reply(`❌ Failed to generate payment link. Please try again later.`);
+                const charge = await this.uddoktaPayService.createCharge(
+                    amount,
+                    fullName,
+                    'no-email@example.com',
+                    { userId: user.id }
+                );
+
+                await ctx.replyWithHTML(
+                    `💳 <b>Payment Link Generated</b>\n\n` +
+                    `Amount: ৳${amount}\n` +
+                    `Click the button below to pay via bKash/Nagad securely.`,
+                    Markup.inlineKeyboard([
+                        [Markup.button.url('💸 Pay Now via UddoktaPay', charge.payment_url)],
+                        [Markup.button.callback('⬅️ Back to Menu', 'start')],
+                    ])
+                );
+            } catch (error) {
+                this.logger.error(`Payment link gen failed: ${error.message}`);
+                await ctx.reply(`❌ Failed to generate payment link. Please try again later.`);
+            }
+            return;
         }
 
-        await (ctx as any).answerCbQuery();
+        // If not pending balance, ignore or handle other text
     }
 
     @Action('referral')

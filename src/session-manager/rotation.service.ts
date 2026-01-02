@@ -18,8 +18,9 @@ export class RotationService implements OnModuleInit {
 
     /**
      * Run every minute to check if any IPs need rotation
+     * DISABLED: User requested no rotating system.
      */
-    @Cron(CronExpression.EVERY_MINUTE)
+    // @Cron(CronExpression.EVERY_MINUTE)
     async handleRotation() {
         // Find all active sessions where (lastRotatedAt + rotationPeriod) <= now
         // If lastRotatedAt is null, use createdAt
