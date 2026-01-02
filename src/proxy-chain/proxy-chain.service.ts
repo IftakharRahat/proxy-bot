@@ -126,12 +126,10 @@ proxy -p30000
 auth strong
 allow ${allowedUsers.join(',')}
 
-# HTTP Parent
+# Use single parent for both Proxy and SOCKS listeners
 parent 1000 http ${parentBase}
-proxy -p${port.localPort}
 
-# SOCKS Parent (Using 'connect' for better chaining)
-parent 1000 connect ${parentBase}
+proxy -p${port.localPort}
 socks -p${port.localPort + 5000}
 `;
         }
