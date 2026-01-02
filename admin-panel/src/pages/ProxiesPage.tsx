@@ -117,7 +117,7 @@ export const ProxiesPage = () => {
                                                         port.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
                                                             "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                                 )}>
-                                                    {port.packageType}
+                                                    {port.packageType === 'High' ? 'Dedicated' : port.packageType === 'Medium' ? '3 Mbps' : '1 Mbps'}
                                                 </span>
                                             </div>
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{port.country || 'Unknown'}</h3>
@@ -175,10 +175,14 @@ export const ProxiesPage = () => {
                                                     <Users size={12} className="text-blue-400" />
                                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Sessions</p>
                                                 </div>
-                                                <div className="flex flex-wrap gap-1 max-h-[40px] overflow-y-auto">
+                                                <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
                                                     {port.sessions?.length > 0 ? (
                                                         port.sessions.map((s: any, i: number) => (
-                                                            <span key={i} className="text-[8px] font-bold text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10">
+                                                            <span
+                                                                key={i}
+                                                                title={`ID: ${s.user?.telegramId}`}
+                                                                className="text-[9px] font-black text-blue-300 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-help"
+                                                            >
                                                                 @{s.user?.username || 'user'}
                                                             </span>
                                                         ))
@@ -266,7 +270,7 @@ export const ProxiesPage = () => {
                                                 port.packageType === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
                                                     "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                         )}>
-                                            {port.packageType}
+                                            {port.packageType === 'High' ? 'Dedicated' : port.packageType === 'Medium' ? '3 Mbps' : '1 Mbps'}
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">

@@ -55,7 +55,7 @@ export class AdminService {
                     where: { id: port.id },
                     data: { currentUsers: actualCount },
                 });
-                port.currentUsers = actualCount; // Update local object for immediate UI response
+                port.currentUsers = actualCount;
             }
         }
 
@@ -74,7 +74,7 @@ export class AdminService {
             // Seed defaults if empty
             await this.prisma.packageConfig.createMany({
                 data: [
-                    { name: 'Normal', maxUsers: 5, autoBuyEnabled: false },
+                    { name: 'Normal', maxUsers: 3, autoBuyEnabled: false },
                     { name: 'Medium', maxUsers: 3, autoBuyEnabled: false },
                     { name: 'High', maxUsers: 1, autoBuyEnabled: false },
                 ],

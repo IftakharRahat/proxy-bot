@@ -46,9 +46,9 @@ export class BotUpdateService {
 
         // Initialize structure with names
         const packages: Record<string, PackageTier> = {
-            normal: { name: '🔹 Normal', prices: {} },
-            medium: { name: '🔸 Medium', prices: {} },
-            high: { name: '🔥 High', prices: {} },
+            normal: { name: '⚡ 1 Mbps (Max 3 Users)', prices: {} },
+            medium: { name: '🚀 3 Mbps (Max 3 Users)', prices: {} },
+            high: { name: '💎 Dedicated (Single User)', prices: {} },
         };
 
         if (pricing.length > 0) {
@@ -205,9 +205,9 @@ export class BotUpdateService {
             `🛒 <b>Select Package Tier</b>\n\n` +
             `Choose your proxy quality level:`,
             Markup.inlineKeyboard([
-                [Markup.button.callback('🔹 Normal - Budget', 'tier_normal')],
-                [Markup.button.callback('🔸 Medium - Standard', 'tier_medium')],
-                [Markup.button.callback('🔥 High - Best Quality', 'tier_high')],
+                [Markup.button.callback('⚡ 1 Mbps (Shared)', 'tier_normal')],
+                [Markup.button.callback('🚀 3 Mbps (Shared)', 'tier_medium')],
+                [Markup.button.callback('💎 Dedicated (Private)', 'tier_high')],
                 [Markup.button.callback('⬅️ Back', 'start')],
             ]),
         );

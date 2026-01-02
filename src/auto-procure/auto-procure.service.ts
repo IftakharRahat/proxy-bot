@@ -132,7 +132,7 @@ export class AutoProcurementService {
                     protocol: 'HTTP',
                     country: targetRegion, // Use the region we just set
                     packageType: tier,
-                    maxUsers: tier === 'High' ? 1 : tier === 'Medium' ? 3 : 5,
+                    maxUsers: tier === 'High' ? 1 : 3, // Normal and Medium are both capped at 3 now
                     currentUsers: 0,
                     isActive: true,
 
