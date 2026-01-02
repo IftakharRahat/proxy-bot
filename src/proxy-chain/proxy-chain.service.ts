@@ -116,12 +116,12 @@ proxy -p30000
                 ...port.sessions.map(s => s.proxyUser),
             ];
 
-            // Most stable allow syntax: Separate lines for each user
-            const allowLines = allowedUsers.map(u => `allow ${u}`).join('\n');
+            // Isolated and compact allow syntax (Flush + Comma separated)
             config += `
 # -------- PORT ${port.localPort} (${port.country ?? 'N/A'}) --------
+flush
 auth strong
-${allowLines}
+allow ${allowedUsers.join(',')}
 `;
 
             // Parent proxy
