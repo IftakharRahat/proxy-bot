@@ -31,12 +31,22 @@ async function sync() {
         console.log(`Original User: ${session.proxyUser}`);
         console.log(`New User: ${newUsername}`);
 
+        // 1.6 Sanitize Password (Remove underscores, ensure alphanumeric 6-22 chars)
+        let newPassword = session.proxyPass.replace(/_/g, '');
+        if (newPassword.length > 22) newPassword = newPassword.substring(0, 22);
+
+        console.log(`Original Pass: ${session.proxyPass}`);
+        console.log(`New Pass: ${newPassword}`);
+
         // Update DB first to ensure consistency
         await prisma.proxySession.update({
             where: { id: session.id },
-            data: { proxyUser: newUsername }
+            data: {
+                proxyUser: newUsername,
+                proxyPass: newPassword
+            }
         });
-        console.log('✅ Updated local database with new username.');
+        console.log('✅ Updated local database with new credentials.');
 
         // 2. Call Novproxy API Manually
         const form = new FormData();
@@ -44,7 +54,7 @@ async function sync() {
         form.append('key', process.env.NOVPROXY_API_KEY);
         form.append('ids', session.portId.toString()); // Novproxy ID (7710)
         form.append('username', newUsername); // Use new SANITIZED username
-        form.append('password', session.proxyPass);
+        form.append('password', newPassword); // Use new SANITIZED password
         form.append('region', session.port.country || 'Random');
         form.append('minute', '10'); // Keep 10 mins as it passed the time check (or we assume so)
         form.append('format', '1');
