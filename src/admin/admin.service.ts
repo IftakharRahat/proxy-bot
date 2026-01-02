@@ -33,23 +33,33 @@ export class AdminService {
     }
 
     async getAllProxies() {
-        // Return all imported ports, not just those with active sessions
-        return this.prisma.port.findMany({
-            where: {
-                isActive: true,
-            },
+        const ports = await this.prisma.port.findMany({
+            where: { isActive: true },
             include: {
                 sessions: {
                     where: { status: 'ACTIVE' },
                     include: {
-                        user: {
-                            select: { username: true, telegramId: true },
-                        },
+                        user: { select: { username: true, telegramId: true } },
                     },
                 },
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        // Auto-fix desynced currentUsers count
+        for (const port of ports) {
+            const actualCount = port.sessions.length;
+            if (port.currentUsers !== actualCount) {
+                this.logger.warn(`Fixing desynced count for port ${port.id}: DB=${port.currentUsers}, Actual=${actualCount}`);
+                await this.prisma.port.update({
+                    where: { id: port.id },
+                    data: { currentUsers: actualCount },
+                });
+                port.currentUsers = actualCount; // Update local object for immediate UI response
+            }
+        }
+
+        return ports;
     }
 
     async syncProxyConfig() {
