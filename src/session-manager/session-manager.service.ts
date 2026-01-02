@@ -18,12 +18,14 @@ export class SessionManagerService {
      * Generate a unique session string for the user
      */
     private generateSessionCredentials(userId: number, portId: number): { username: string; password: string } {
-        const randomStr = Math.random().toString(36).substring(2, 10);
-        const timestamp = Date.now().toString(36);
-        return {
-            username: `user${userId}_p${portId}_${randomStr}`,
-            password: `pass_${timestamp}_${randomStr}`,
-        };
+        // Novproxy requires 8-22 alphanumeric characters (no underscores).
+        const randomStr = Math.random().toString(36).substring(2, 10); // 8 chars
+        const timestamp = Date.now().toString(36); // ~8-9 chars alphanumeric
+
+        const username = `user${userId}p${portId}${randomStr}`.replace(/[^a-zA-Z0-9]/g, '').substring(0, 22);
+        const password = `pass${timestamp}${randomStr}`.replace(/[^a-zA-Z0-9]/g, '').substring(0, 22);
+
+        return { username, password };
     }
 
     /**
