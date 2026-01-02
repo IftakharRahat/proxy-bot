@@ -34,7 +34,7 @@ async function sync() {
         form.append('username', session.proxyUser);
         form.append('password', session.proxyPass);
         form.append('region', session.port.country || 'Random');
-        form.append('minute', '0'); // No rotation
+        form.append('minute', '1440'); // Try 24 hours (1440 mins) or whatever the port supports
         form.append('format', '1');
 
         console.log('🔄 Syncing with Novproxy...');
