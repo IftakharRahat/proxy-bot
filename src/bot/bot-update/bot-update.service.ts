@@ -493,9 +493,14 @@ export class BotUpdateService {
             `💰 <b>Add Balance</b>\n\n` +
             `Please type the amount of balance you want to add (e.g., 250).\n\n` +
             `<i>The minimum amount is ৳10.</i>`,
-            Markup.inlineKeyboard([
-                [Markup.button.callback('⬅️ Cancel', 'start')],
-            ]),
+            {
+                reply_markup: {
+                    keyboard: [[{ text: '⬅️ Back to Menu' }]],
+                    resize_keyboard: true,
+                    one_time_keyboard: true,
+                    input_field_placeholder: 'Enter amount (e.g., 500)...',
+                },
+            },
         );
 
         if ('answerCbQuery' in ctx) {
@@ -582,6 +587,15 @@ export class BotUpdateService {
         if ('answerCbQuery' in ctx) {
             await (ctx as any).answerCbQuery();
         }
+    }
+
+    @Hears('⬅️ Back to Menu')
+    async onBackToMenu(@Ctx() ctx: Context) {
+        const user = await this.ensureUser(ctx);
+        if (user) {
+            this.pendingBalanceInput.delete(user.telegramId);
+        }
+        await this.onStart(ctx);
     }
 
     @Action('start')
