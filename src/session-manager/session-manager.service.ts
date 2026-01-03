@@ -181,13 +181,37 @@ export class SessionManagerService {
     async expireSession(sessionId: number) {
         const session = await this.prisma.proxySession.findUnique({
             where: { id: sessionId },
+            include: { port: true },
         });
 
         if (!session || session.status !== 'ACTIVE') {
             return null;
         }
 
-        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        this.logger.log(`Expiring session ${sessionId} (Port: ${session.port.localPort}, Tier: ${session.port.packageType})`);
+
+        // Perform actual disconnection based on tier
+        try {
+            if (session.port.packageType === 'High') {
+                // For Premium: Change credentials on Novproxy to something random
+                const randomCreds = this.generateSessionCredentials(0, session.portId);
+                await this.novproxy.batchEditPorts([session.portId], {
+                    username: randomCreds.username,
+                    password: randomCreds.password,
+                    region: session.port.country || 'us',
+                    minute: session.rotationPeriod || 30,
+                });
+                this.logger.log(`Locked Novproxy port ${session.portId} with random credentials`);
+            } else {
+                // For Shared: Rebuild 3proxy config (it will exclude this session as it won't be ACTIVE once updated)
+                // But we must do this AFTER the transaction or inside a way that it sees the change
+            }
+        } catch (error) {
+            this.logger.error(`Failed to disconnect proxy for session ${sessionId}: ${error.message}`);
+            // We still proceed with DB expiration to avoid infinite loops, but log the error
+        }
+
+        const result = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Decrement port user count
             await tx.port.update({
                 where: { id: session.portId },
@@ -200,6 +224,17 @@ export class SessionManagerService {
                 data: { status: 'EXPIRED' },
             });
         });
+
+        // For Shared tiers, rebuild 3proxy config after marking as EXPIRED
+        if (session.port.packageType !== 'High') {
+            try {
+                await this.proxyChain.rebuildConfig();
+            } catch (error) {
+                this.logger.error(`Failed to rebuild 3proxy config after expiring session ${sessionId}: ${error.message}`);
+            }
+        }
+
+        return result;
     }
 
     /**

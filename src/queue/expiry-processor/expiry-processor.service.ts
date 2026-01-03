@@ -67,6 +67,7 @@ export class ExpiryProcessorService extends WorkerHost implements OnModuleInit {
     /**
      * Run every minute to clean up any sessions that may have been missed
      */
+    @Cron(CronExpression.EVERY_MINUTE)
     async cleanupExpiredSessions(): Promise<void> {
         try {
             const expiredCount = await this.sessionManager.expireAllExpiredSessions();
