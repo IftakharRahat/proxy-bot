@@ -10,10 +10,12 @@ import { SettingsPage } from './pages/SettingsPage';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
     return (
         <BrowserRouter>
+            <Toaster position="top-right" />
             <Routes>
                 <Route path="/login" element={<Login />} />
 
