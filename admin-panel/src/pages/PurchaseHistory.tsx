@@ -126,20 +126,30 @@ export const PurchaseHistory: React.FC = () => {
                                         <td className="px-8 py-5">
                                             <span className="text-sm font-bold text-slate-300">{log.duration}</span>
                                         </td>
-                                        <td className="px-8 py-5 font-black text-rose-500">
-                                            -${Number(log.cost).toFixed(2)}
-                                        </td>
-                                        <td className="px-8 py-5 text-center">
-                                            <span className="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 group-hover:border-blue-500/30 transition-all">
-                                                {log.ip || 'N/A'}
-                                            </span>
+                                        <td className="px-8 py-5">
+                                            <div className="flex flex-col gap-1">
+                                                {log.ip && log.ip !== 'N/A' ? (
+                                                    <>
+                                                        <span className="text-xs font-mono text-slate-200 bg-white/5 px-2 py-1 rounded-lg border border-white/5 group-hover:border-blue-500/30 transition-all">
+                                                            {log.ip.split(', ')[0]}
+                                                        </span>
+                                                        {log.ip.split(', ').length > 1 && (
+                                                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter text-center">
+                                                                + {log.ip.split(', ').length - 1} additional ports
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs font-mono text-slate-500 italic">N/A</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-mono text-slate-500 bg-white/5 px-2 py-1 rounded">
-                                                    {log.orderId ? log.orderId.slice(0, 8) + '...' : 'N/A'}
+                                                    {log.orderId && log.orderId !== 'N/A' ? (log.orderId.length > 15 ? log.orderId.slice(0, 12) + '...' : log.orderId) : 'N/A'}
                                                 </span>
-                                                {log.orderId && <ExternalLink size={12} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" />}
+                                                {log.orderId && log.orderId !== 'N/A' && <ExternalLink size={12} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" />}
                                             </div>
                                         </td>
                                         <td className="px-8 py-5">
