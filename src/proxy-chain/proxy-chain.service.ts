@@ -146,6 +146,15 @@ socks -a -p${socksPort}
                 const finalConfig = config.trim().replace(/\r\n/g, '\n') + '\n';
                 await fs.promises.writeFile(this.configPath, finalConfig);
                 this.logger.log('3proxy config written successfully (Isolated Services + LF Endings)');
+
+                // 2️⃣ APPLY CONFIG (System Restart)
+                try {
+                    await execAsync(this.reloadCommand);
+                    this.logger.log(`3proxy service restarted successfully: ${this.reloadCommand}`);
+                } catch (execErr) {
+                    this.logger.error(`Failed to restart 3proxy: ${execErr.message}`);
+                    this.logger.warn(`Please manually run: ${this.reloadCommand}`);
+                }
             } else {
                 this.logger.warn('Windows detected: config generation only (dry run)');
             }
