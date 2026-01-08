@@ -229,13 +229,32 @@ export class AdminService {
                 // --- Sync Ports immediately after purchase ---
                 logger.log(`Purchase successful (Order: ${orderId}). Syncing ports...`);
 
-                // Only sync if we have a valid orderId to avoid fetching the entire dashboard
                 let sourceIp = 'N/A';
-                if (orderId) {
-                    const portList = await this.novproxyService.getPortsList(1, 100, orderId.toString());
-                    if (portList.code === 0 && portList.data?.list) {
-                        // Only sync the number of ports requested (quantity)
-                        const activatedPorts = portList.data.list.slice(0, quantity);
+
+                // Fetch ports: Use orderId filter if available, otherwise fetch recent ones
+                const portList = await this.novproxyService.getPortsList(1, 100, orderId?.toString());
+
+                if (portList.code === 0 && portList.data?.list) {
+                    let activatedPorts = [];
+
+                    if (orderId) {
+                        // Case 1: Fresh Purchase with specific orderId
+                        activatedPorts = portList.data.list.slice(0, quantity);
+                    } else {
+                        // Case 2: Quota Activation (orderId missing)
+                        // Heuristic: Take ports that are NOT already in our database
+                        const existingPortIds = (await this.prisma.port.findMany({ select: { id: true } })).map(p => p.id);
+                        activatedPorts = portList.data.list
+                            .filter(p => !existingPortIds.includes(p.id))
+                            .slice(0, quantity);
+
+                        // If still nothing (re-refill or sync issue), fallback to just the first 'quantity' ports
+                        if (activatedPorts.length === 0) {
+                            activatedPorts = portList.data.list.slice(0, quantity);
+                        }
+                    }
+
+                    if (activatedPorts.length > 0) {
                         sourceIp = activatedPorts.map(p => `${p.ip}:${p.port}`).join(', ');
                         const portIds = activatedPorts.map(p => p.id);
 
