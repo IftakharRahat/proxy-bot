@@ -185,10 +185,11 @@ export class AutoProcurementService {
             if (cost === 0) cost = res.data?.value || 0;
 
             await this.admin.createPurchaseLog({
-                packageType: tier,
+                packageType: hasQuota ? `[STOCK ACTIVATION] ${tier}` : tier,
                 duration: `${durationDays} Days`,
                 cost: Number(cost),
                 orderId: orderId?.toString(),
+                ip: purchasedPort.ip
             });
 
             this.logger.log(`Auto-refill complete. New port ${purchasedPort.ip} setup.`);

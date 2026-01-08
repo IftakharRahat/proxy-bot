@@ -98,13 +98,14 @@ export class AdminService {
         });
     }
 
-    async createPurchaseLog(data: { packageType: string; duration: string; cost: number; orderId?: string }) {
+    async createPurchaseLog(data: { packageType: string; duration: string; cost: number; orderId?: string; ip?: string }) {
         return this.prisma.purchaseLog.create({
             data: {
                 packageType: data.packageType,
                 duration: data.duration,
                 cost: Number(data.cost),
                 orderId: data.orderId,
+                ip: data.ip,
             },
         });
     }
@@ -222,18 +223,13 @@ export class AdminService {
 
                 if (cost === 0) cost = res.data?.value || 0;
 
-                await this.createPurchaseLog({
-                    packageType: `[STOCK ACTIVATION] ${packageType}`,
-                    duration,
-                    cost: Number(cost),
-                    orderId: orderId?.toString(),
-                });
-
                 // --- Sync Ports immediately after purchase ---
-                logger.log(`Purchase successful (Order: ${res.data?.order_id}). Syncing ports...`);
-                const portList = await this.novproxyService.getPortsList(1, 100, res.data?.order_id?.toString());
+                logger.log(`Purchase successful (Order: ${orderId}). Syncing ports...`);
+                const portList = await this.novproxyService.getPortsList(1, 100, orderId?.toString());
+                let sourceIp = 'N/A';
 
                 if (portList.code === 0 && portList.data?.list) {
+                    sourceIp = portList.data.list.map(p => p.ip).join(', ');
                     const portIds = portList.data.list.map(p => p.id);
 
                     // Apply country and rotation settings via batch_edit
@@ -321,6 +317,14 @@ export class AdminService {
                         await this.proxyChain.rebuildConfig();
                     }
                 }
+
+                await this.createPurchaseLog({
+                    packageType: hasQuota ? `[STOCK ACTIVATION] ${packageType}` : packageType,
+                    duration,
+                    cost: Number(cost),
+                    orderId: orderId?.toString(),
+                    ip: sourceIp
+                });
 
                 return { success: true, msg: `Refill successful. ${quantity} ports (${country}, ${rotation}m) added to ${packageType} pool.`, data: res.data };
             } else {

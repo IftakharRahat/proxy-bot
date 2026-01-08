@@ -86,6 +86,7 @@ model PurchaseLog {
   duration    String
   cost        Decimal
   orderId     String?  // From Novproxy
+  ip          String?  // Novproxy IP for tracking
   status      String   @default("SUCCESS")
 }
 

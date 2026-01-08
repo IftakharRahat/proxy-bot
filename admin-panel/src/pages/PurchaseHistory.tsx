@@ -9,6 +9,7 @@ interface PurchaseLog {
     duration: string;
     cost: number;
     orderId?: string;
+    ip?: string;
     status: string;
 }
 
@@ -84,6 +85,7 @@ export const PurchaseHistory: React.FC = () => {
                                 <th className="px-8 py-5">Resource Type</th>
                                 <th className="px-8 py-5">Lease</th>
                                 <th className="px-8 py-5">Debit Amount</th>
+                                <th className="px-8 py-5 text-center">Source IP</th>
                                 <th className="px-8 py-5">Reference ID</th>
                                 <th className="px-8 py-5 text-center">Status</th>
                             </tr>
@@ -126,6 +128,11 @@ export const PurchaseHistory: React.FC = () => {
                                         </td>
                                         <td className="px-8 py-5 font-black text-rose-500">
                                             -${Number(log.cost).toFixed(2)}
+                                        </td>
+                                        <td className="px-8 py-5 text-center">
+                                            <span className="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 group-hover:border-blue-500/30 transition-all">
+                                                {log.ip || 'N/A'}
+                                            </span>
                                         </td>
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-2">
