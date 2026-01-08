@@ -5,7 +5,7 @@ async function audit() {
     try {
         const ports = await prisma.port.findMany({
             where: {
-                localPort: { gte: 30000, lte: 30010 }
+                localPort: { gte: 30012, lte: 30014 }
             },
             orderBy: { localPort: 'asc' }
         });

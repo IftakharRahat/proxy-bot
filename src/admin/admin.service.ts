@@ -239,12 +239,15 @@ export class AdminService {
                         sourceIp = activatedPorts.map(p => `${p.ip}:${p.port}`).join(', ');
                         const portIds = activatedPorts.map(p => p.id);
 
+                        const targetUser = activatedPorts[0]?.username || 'proxyuser';
+                        const targetPass = activatedPorts[0]?.password || 'proxypass';
+
                         // Apply country and rotation settings via batch_edit
                         if (portIds.length > 0) {
                             logger.log(`Applying settings: Country=${country}, Rotation=${rotation}min to ${portIds.length} ports`);
                             await this.novproxyService.batchEditPorts(portIds, {
-                                username: portList.data.list[0]?.username || 'proxyuser',
-                                password: portList.data.list[0]?.password || 'proxypass',
+                                username: targetUser,
+                                password: targetPass,
                                 region: country,
                                 minute: rotation,
                             });
@@ -280,11 +283,11 @@ export class AdminService {
                                 finalHost = vpsIp;
                                 finalPort = localPortVal;
 
-                                // Save Upstream Info
+                                // Save Upstream Info - IMPORTANT: Use targetUser/Pass we just set
                                 upHost = port.ip;
                                 upPort = port.port;
-                                upUser = port.username;
-                                upPass = port.password;
+                                upUser = targetUser;
+                                upPass = targetPass;
                             }
 
                             await this.prisma.port.upsert({
