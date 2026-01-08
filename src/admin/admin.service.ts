@@ -296,6 +296,8 @@ export class AdminService {
                                 upPort = port.port;
                                 upUser = targetUser;
                                 upPass = targetPass;
+
+                                logger.log(`Syncing Port ${port.id}: Local=${localPortVal}, Upstream=${upHost}:${upPort}, User=${upUser}`);
                             }
 
                             await this.prisma.port.upsert({
