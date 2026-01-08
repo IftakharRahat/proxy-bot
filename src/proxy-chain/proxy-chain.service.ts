@@ -142,8 +142,10 @@ socks -a -p${socksPort}
         /* ───────────── 4️⃣ WRITE & NOTIFY ───────────── */
         try {
             if (process.platform !== 'win32') {
-                await fs.promises.writeFile(this.configPath, config.trim() + '\n');
-                this.logger.log('3proxy config written successfully (Isolated Services + CONNECT Tunneling)');
+                // Ensure Linux-style line endings (LF) to prevent 407 auth errors
+                const finalConfig = config.trim().replace(/\r\n/g, '\n') + '\n';
+                await fs.promises.writeFile(this.configPath, finalConfig);
+                this.logger.log('3proxy config written successfully (Isolated Services + LF Endings)');
             } else {
                 this.logger.warn('Windows detected: config generation only (dry run)');
             }
