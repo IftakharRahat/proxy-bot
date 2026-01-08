@@ -267,9 +267,10 @@ export class AdminService {
                         const vpsIp = this.configService.get('VPS_IP') || '127.0.0.1'; // Update this in .env
 
                         for (const port of activatedPorts) {
-                            let localPortVal: number | null = null;
+                            // IMPORTANT: Check if port already exists to preserve localPort assignment
+                            const existing = await this.prisma.port.findUnique({ where: { id: port.id } });
 
-                            // Default to Direct Provider Info
+                            let localPortVal: number | null = null;
                             let finalHost = port.ip;
                             let finalPort = port.port;
                             let upHost: string | null = null;
@@ -278,10 +279,17 @@ export class AdminService {
                             let upPass: string | null = null;
 
                             if (packageType !== 'High') {
-                                // Shared: Use VPS Info
-                                localPortVal = nextLocalPort++;
-                                finalHost = vpsIp;
-                                finalPort = localPortVal;
+                                if (existing) {
+                                    // Preserve existing assignment
+                                    localPortVal = existing.localPort;
+                                    finalHost = existing.host;
+                                    finalPort = existing.port;
+                                } else {
+                                    // Assign new localPort
+                                    localPortVal = nextLocalPort++;
+                                    finalHost = vpsIp;
+                                    finalPort = localPortVal;
+                                }
 
                                 // Save Upstream Info - IMPORTANT: Use targetUser/Pass we just set
                                 upHost = port.ip;
