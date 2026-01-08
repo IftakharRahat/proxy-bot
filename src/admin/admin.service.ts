@@ -186,7 +186,19 @@ export class AdminService {
         const days = durationMap[duration] || 1;
 
         try {
-            const res = await this.novproxyService.buyPort(days, quantity);
+            let res;
+            // --- QUOTA INTEGRATION ---
+            const balance = await this.novproxyService.getPortBalance();
+            const quotaKey = `num${days}` as keyof typeof balance.data;
+            const hasQuota = balance.code === 0 && balance.data && (balance.data[quotaKey] || 0) >= quantity;
+
+            if (hasQuota) {
+                logger.log(`Manual Refill: Using existing quota for ${days} days (${quantity} ports).`);
+                res = await this.novproxyService.usePortByBalance(days, quantity);
+            } else {
+                logger.log(`Manual Refill: No sufficient quota for ${days} days. Buying ${quantity} ports.`);
+                res = await this.novproxyService.buyPort(days, quantity);
+            }
 
             if (res.code === 0) {
                 const orderId = res.data?.order_id || res.data?.id;
@@ -728,11 +740,23 @@ export class AdminService {
             const totalPorts = await this.prisma.port.count();
             const integrity = totalPorts > 0 ? (activePorts / totalPorts) * 100 : 100;
 
+            // Fetch Novproxy Quota Balance
+            let portBalance = { num3: 0, num7: 0, num30: 0 };
+            try {
+                const balanceRes = await this.novproxyService.getPortBalance();
+                if (balanceRes.code === 0 && balanceRes.data) {
+                    portBalance = balanceRes.data;
+                }
+            } catch (e) {
+                this.logger.warn(`Failed to fetch Novproxy balance: ${e.message}`);
+            }
+
             return {
                 totalUsers,
                 activePorts,
                 totalRevenue: parseFloat(totalRevenueData._sum?.amount?.toString() || '0'),
                 nodeIntegrity: `${Math.min(integrity, 99.9).toFixed(1)}%`,
+                portQuota: portBalance,
             };
         } catch (error) {
             this.logger.error(`Dashboard stats error: ${error.message}`, error.stack);

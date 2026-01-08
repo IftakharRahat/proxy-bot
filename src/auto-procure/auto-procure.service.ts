@@ -65,10 +65,24 @@ export class AutoProcurementService {
             // (User request implies we can control it via "Decision... Action").
 
             const quantity = 1; // Auto-buy 1 port at a time? Or config? Assume 1 for now.
-            const res = await this.novproxy.buyPort(durationDays, quantity);
+            let res;
+
+            // --- QUOTA INTEGRATION ---
+            // Check if we have unused ports in balance/quota
+            const balance = await this.novproxy.getPortBalance();
+            const quotaKey = `num${durationDays}` as keyof typeof balance.data;
+            const hasQuota = balance.code === 0 && balance.data && (balance.data[quotaKey] || 0) > 0;
+
+            if (hasQuota) {
+                this.logger.log(`Using existing quota for ${durationDays} days. Remaining: ${balance.data[quotaKey]}`);
+                res = await this.novproxy.usePortByBalance(durationDays, quantity);
+            } else {
+                this.logger.log(`No quota for ${durationDays} days. Buying new port.`);
+                res = await this.novproxy.buyPort(durationDays, quantity);
+            }
 
             if (res.code !== 0) {
-                this.logger.error(`Novproxy purchase failed: ${res.msg}`);
+                this.logger.error(`Novproxy activation failed: ${res.msg}`);
                 return false;
             }
 

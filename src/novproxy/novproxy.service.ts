@@ -39,6 +39,12 @@ export interface PortListResponse {
     total: number;
 }
 
+export interface PortBalance {
+    num3: number;
+    num7: number;
+    num30: number;
+}
+
 @Injectable()
 export class NovproxyService {
     private readonly logger = new Logger(NovproxyService.name);
@@ -219,5 +225,51 @@ export class NovproxyService {
             return result.data.list.find((p) => p.id === portId) || null;
         }
         return null;
+    }
+
+    /**
+     * Use port from balance (Quota extraction)
+     */
+    async usePortByBalance(days: number, quantity: number): Promise<NovproxyResponse> {
+        const form = this.createFormData({
+            day: days.toString(),
+            num: quantity.toString(),
+        });
+
+        const response = await this.client.post('/port/use_port_by_balance', form, {
+            headers: form.getHeaders(),
+        });
+
+        this.logger.log(`usePortByBalance Response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    }
+
+    /**
+     * Renew port from balance (Quota extension)
+     */
+    async renewPortByBalance(id: number, days: number): Promise<NovproxyResponse> {
+        const form = this.createFormData({
+            id: id.toString(),
+            day: days.toString(),
+        });
+
+        const response = await this.client.post('/port/renew_port_by_balance', form, {
+            headers: form.getHeaders(),
+        });
+
+        this.logger.log(`renewPortByBalance: ID ${id} for ${days} days`);
+        return response.data;
+    }
+
+    /**
+     * Get port quota balance
+     */
+    async getPortBalance(): Promise<NovproxyResponse<PortBalance>> {
+        const form = this.createFormData({});
+        const response = await this.client.post('/port/get_port_balance', form, {
+            headers: form.getHeaders(),
+        });
+
+        return response.data;
     }
 }

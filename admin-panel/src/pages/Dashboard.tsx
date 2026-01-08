@@ -116,6 +116,47 @@ export const Dashboard = () => {
                 />
             </div>
 
+            <header>
+                <h3 className="text-xl font-black text-white tracking-tight italic">Quota Inventory</h3>
+                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mt-1">Unused ports in Novproxy stock</p>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="glass-card p-6 rounded-3xl border border-white/5 flex items-center justify-between group">
+                    <div>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">3-Day Stock</p>
+                        <h4 className="text-2xl font-black text-white mt-1 group-hover:text-blue-400 transition-colors">
+                            {loading ? '...' : (stats?.portQuota?.num3 || 0)}
+                        </h4>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400">
+                        <Activity size={20} />
+                    </div>
+                </div>
+                <div className="glass-card p-6 rounded-3xl border border-white/5 flex items-center justify-between group">
+                    <div>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">7-Day Stock</p>
+                        <h4 className="text-2xl font-black text-white mt-1 group-hover:text-green-400 transition-colors">
+                            {loading ? '...' : (stats?.portQuota?.num7 || 0)}
+                        </h4>
+                    </div>
+                    <div className="p-3 rounded-xl bg-green-500/10 text-green-400">
+                        <Activity size={20} />
+                    </div>
+                </div>
+                <div className="glass-card p-6 rounded-3xl border border-white/5 flex items-center justify-between group">
+                    <div>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">30-Day Stock</p>
+                        <h4 className="text-2xl font-black text-white mt-1 group-hover:text-purple-400 transition-colors">
+                            {loading ? '...' : (stats?.portQuota?.num30 || 0)}
+                        </h4>
+                    </div>
+                    <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400">
+                        <Activity size={20} />
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 glass-card rounded-[2.5rem] p-10 border border-white/5 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-transparent opacity-30" />
