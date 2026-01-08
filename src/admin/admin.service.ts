@@ -229,7 +229,7 @@ export class AdminService {
                 let sourceIp = 'N/A';
 
                 if (portList.code === 0 && portList.data?.list) {
-                    sourceIp = portList.data.list.map(p => p.ip).join(', ');
+                    sourceIp = portList.data.list.map(p => `${p.ip}:${p.port}`).join(', ');
                     const portIds = portList.data.list.map(p => p.id);
 
                     // Apply country and rotation settings via batch_edit

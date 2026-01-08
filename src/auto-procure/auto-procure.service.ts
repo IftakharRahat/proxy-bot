@@ -189,7 +189,7 @@ export class AutoProcurementService {
                 duration: `${durationDays} Days`,
                 cost: Number(cost),
                 orderId: orderId?.toString(),
-                ip: purchasedPort.ip
+                ip: `${purchasedPort.ip}:${purchasedPort.port}`
             });
 
             this.logger.log(`Auto-refill complete. New port ${purchasedPort.ip} setup.`);
