@@ -463,11 +463,34 @@ export class AdminService {
 
             logger.log(`Fetched ${allPorts.length} ports from Novproxy`);
 
-            if (allPorts.length === 0) {
-                return { success: true, msg: 'No ports found in Novproxy dashboard.', synced: 0, total: 0 };
+            // 2. Get all Novproxy port IDs
+            const novproxyPortIds = new Set(allPorts.map(p => p.id));
+
+            // 3. Find and DELETE ports that exist in DB but NOT on Novproxy (expired/deleted)
+            const dbPorts = await this.prisma.port.findMany({ select: { id: true, localPort: true } });
+            const expiredPorts = dbPorts.filter(p => !novproxyPortIds.has(p.id));
+
+            let deletedCount = 0;
+            for (const expiredPort of expiredPorts) {
+                logger.warn(`Port ${expiredPort.id} (LocalPort: ${expiredPort.localPort}) no longer exists on Novproxy. Removing...`);
+
+                // First, delete all sessions associated with this port
+                await this.prisma.proxySession.deleteMany({ where: { portId: expiredPort.id } });
+
+                // Then delete the port itself
+                await this.prisma.port.delete({ where: { id: expiredPort.id } });
+                deletedCount++;
             }
 
-            // 2. Get VPS IP and find next available local port
+            if (deletedCount > 0) {
+                logger.log(`Deleted ${deletedCount} expired ports from database.`);
+            }
+
+            if (allPorts.length === 0 && deletedCount === 0) {
+                return { success: true, msg: 'No ports found in Novproxy dashboard.', synced: 0, total: 0, deleted: 0 };
+            }
+
+            // 4. Get VPS IP and find next available local port
             const vpsIp = this.configService.get('VPS_IP') || '127.0.0.1';
             let nextLocalPort = 30000;
             const lastPort = await this.prisma.port.findFirst({
@@ -476,7 +499,7 @@ export class AdminService {
             });
             if (lastPort?.localPort) nextLocalPort = lastPort.localPort + 1;
 
-            // 3. Upsert each port
+            // 5. Upsert each port
             let syncedCount = 0;
             let newCount = 0;
 
@@ -537,12 +560,13 @@ export class AdminService {
                 await this.proxyChain.rebuildConfig();
             }
 
-            logger.log(`Sync complete: ${syncedCount} ports synced, ${newCount} new ports added.`);
+            logger.log(`Sync complete: ${syncedCount} ports synced, ${newCount} new ports added, ${deletedCount} expired ports removed.`);
             return {
                 success: true,
-                msg: `Synced ${syncedCount} ports from Novproxy. ${newCount} new ports added to ${packageType} pool.`,
+                msg: `Synced ${syncedCount} ports from Novproxy. ${newCount} new added, ${deletedCount} removed.`,
                 synced: syncedCount,
                 newPorts: newCount,
+                deleted: deletedCount,
                 total: allPorts.length,
             };
         } catch (error) {
