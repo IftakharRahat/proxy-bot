@@ -243,11 +243,11 @@ export const Dashboard = () => {
 
                     <button
                         onClick={async () => {
-                            const toastId = toast.loading('Syncing proxy config...');
+                            const toastId = toast.loading('Syncing provider inventory...');
                             try {
-                                const res = await api.post('/admin/sync-config');
+                                const res = await api.post('/admin/sync-inventory');
                                 console.log('Sync response:', res);
-                                toast.success('3proxy configuration synced successfully!', { id: toastId });
+                                toast.success(res.data.msg || 'Inventory synced successfully!', { id: toastId });
                             } catch (err: any) {
                                 console.error('Sync failed:', err);
                                 toast.error(`Failed: ${err.message || 'Unknown error'}`, { id: toastId });
