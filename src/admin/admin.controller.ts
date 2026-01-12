@@ -88,8 +88,8 @@ export class AdminController {
     }
 
     @Post('sync-inventory')
-    async syncInventory(@Body() body: { packageType?: string }) {
-        return this.adminService.syncProviderInventory(body.packageType || 'Normal');
+    async syncInventory(@Body() body: { packageType?: string } = {}) {
+        return this.adminService.syncProviderInventory(body?.packageType || 'Normal');
     }
 
     @Get('preview-provider')
