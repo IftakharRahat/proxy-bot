@@ -26,6 +26,14 @@ export class AdminController {
         return this.adminService.getAllUsers();
     }
 
+    @Patch('users/:id/balance')
+    async adjustUserBalance(
+        @Param('id') id: string,
+        @Body() body: { amount: number; operation: 'add' | 'subtract'; reason?: string }
+    ) {
+        return this.adminService.adjustUserBalance(parseInt(id, 10), body.amount, body.operation, body.reason);
+    }
+
     @Get('proxies')
     async getProxies() {
         return this.adminService.getAllProxies();

@@ -60,4 +60,10 @@ export interface Transaction {
     };
 }
 
+// Balance Adjustment API
+export const adjustUserBalance = async (userId: number, amount: number, operation: 'add' | 'subtract', reason?: string) => {
+    const response = await api.patch(`/admin/users/${userId}/balance`, { amount, operation, reason });
+    return response.data;
+};
+
 export default api;

@@ -1,20 +1,143 @@
 import { useEffect, useState } from 'react';
-import { getUsers } from '../api/client';
-import { User, DollarSign, Shield, Calendar, Terminal } from 'lucide-react';
+import { getUsers, adjustUserBalance } from '../api/client';
+import { User, DollarSign, Shield, Calendar, Terminal, X, Plus, Minus } from 'lucide-react';
+
+interface BalanceModalProps {
+    user: any;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+const BalanceModal = ({ user, onClose, onSuccess }: BalanceModalProps) => {
+    const [amount, setAmount] = useState('');
+    const [operation, setOperation] = useState<'add' | 'subtract'>('add');
+    const [reason, setReason] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async () => {
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            setError('Please enter a valid amount');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const result = await adjustUserBalance(user.id, numAmount, operation, reason);
+            if (result.success) {
+                onSuccess();
+                onClose();
+            } else {
+                setError(result.message || 'Operation failed');
+            }
+        } catch (e: any) {
+            setError(e.response?.data?.message || 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+            <div className="glass-card rounded-3xl p-8 w-full max-w-md border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-black text-white">Adjust Balance</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                        <X className="text-slate-400" size={20} />
+                    </button>
+                </div>
+
+                <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-xs text-slate-500 uppercase tracking-widest mb-1">User</p>
+                    <p className="text-white font-bold">@{user.username || 'unknown'}</p>
+                    <p className="text-sm text-slate-400">Current Balance: <span className="text-blue-400 font-bold">৳{user.balance}</span></p>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setOperation('add')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${operation === 'add'
+                                    ? 'bg-green-600 text-white shadow-lg shadow-green-500/30'
+                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                }`}
+                        >
+                            <Plus size={16} /> Add
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setOperation('subtract')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${operation === 'subtract'
+                                    ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
+                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                }`}
+                        >
+                            <Minus size={16} /> Subtract
+                        </button>
+                    </div>
+
+                    <div>
+                        <label className="text-xs text-slate-500 uppercase tracking-widest mb-2 block">Amount (৳)</label>
+                        <input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="Enter amount..."
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-xs text-slate-500 uppercase tracking-widest mb-2 block">Reason (Optional)</label>
+                        <input
+                            type="text"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            placeholder="e.g. Bonus, Refund, Correction..."
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                    </div>
+
+                    {error && (
+                        <p className="text-red-400 text-sm bg-red-500/10 px-4 py-2 rounded-xl border border-red-500/20">{error}</p>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${operation === 'add'
+                                ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/30'
+                                : 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-500/30'
+                            } ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                    >
+                        {loading ? 'Processing...' : `${operation === 'add' ? 'Add' : 'Subtract'} ৳${amount || '0'}`}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const UsersPage = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+
+    const fetchUsers = async () => {
+        try {
+            const data = await getUsers();
+            setUsers(data);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const data = await getUsers();
-                setUsers(data);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchUsers();
     }, []);
 
@@ -93,9 +216,13 @@ export const UsersPage = () => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex justify-center">
-                                            <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 leading-none">
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedUser(user)}
+                                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 leading-none"
+                                            >
                                                 <DollarSign size={14} />
-                                                Inject Fund
+                                                Adjust Balance
                                             </button>
                                         </div>
                                     </td>
@@ -109,6 +236,14 @@ export const UsersPage = () => {
                     <p className="text-xs italic font-medium">Total registered nodes: {users.length}</p>
                 </div>
             </div>
+
+            {selectedUser && (
+                <BalanceModal
+                    user={selectedUser}
+                    onClose={() => setSelectedUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
         </div>
     );
 };

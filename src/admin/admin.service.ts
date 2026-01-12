@@ -32,6 +32,38 @@ export class AdminService {
         });
     }
 
+    async adjustUserBalance(userId: number, amount: number, operation: 'add' | 'subtract', reason?: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return { success: false, message: 'User not found' };
+        }
+
+        const currentBalance = Number(user.balance);
+        let newBalance: number;
+
+        if (operation === 'add') {
+            newBalance = currentBalance + amount;
+        } else {
+            newBalance = currentBalance - amount;
+            if (newBalance < 0) {
+                return { success: false, message: 'Insufficient balance for this operation' };
+            }
+        }
+
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { balance: newBalance },
+        });
+
+        this.logger.log(`Balance adjusted for user ${userId}: ${operation} ${amount}. New balance: ${newBalance}. Reason: ${reason || 'N/A'}`);
+
+        return {
+            success: true,
+            message: `Successfully ${operation === 'add' ? 'added' : 'subtracted'} ৳${amount}`,
+            newBalance
+        };
+    }
+
     async getAllProxies() {
         const ports = await this.prisma.port.findMany({
             where: { isActive: true },
