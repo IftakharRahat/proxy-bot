@@ -210,81 +210,109 @@ export const InventorySettings: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {configs.map((pkg) => (
-                        <div key={pkg.name} className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 group hover:border-white/10 transition-all">
-                            <div className="flex items-center justify-between mb-6">
-                                <span className={clsx(
-                                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                    pkg.name === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                                        pkg.name === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                                            "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                    {configs.map((pkg) => {
+                        // Speed labels based on tier
+                        const speedLabel = pkg.name === 'High' ? '∞ Unlimited' : pkg.name === 'Medium' ? '3 Mbps' : '1 Mbps';
+                        const tierColor = pkg.name === 'High' ? 'purple' : pkg.name === 'Medium' ? 'blue' : 'emerald';
+
+                        return (
+                            <div key={pkg.name} className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 group hover:border-white/10 transition-all">
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className={clsx(
+                                        "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                        pkg.name === 'High' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                                            pkg.name === 'Medium' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
+                                                "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                    )}>
+                                        {pkg.name === 'High' ? 'Dedicated' : 'Shared'} Tier
+                                    </span>
+                                    <Zap className="text-slate-700 group-hover:text-amber-400 transition-colors" size={16} />
+                                </div>
+
+                                {/* Speed Badge */}
+                                <div className={clsx(
+                                    "mb-6 px-4 py-2 rounded-xl text-center border",
+                                    `bg-${tierColor}-500/5 border-${tierColor}-500/10`
                                 )}>
-                                    {pkg.name === 'High' ? 'Dedicated' : 'Shared'} Tier
-                                </span>
-                                <Zap className="text-slate-700 group-hover:text-amber-400 transition-colors" size={16} />
-                            </div>
-
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Max Capacity</label>
-                                    <input
-                                        type="number"
-                                        disabled={pkg.name === 'High'}
-                                        value={pkg.maxUsers}
-                                        onChange={(e) => {
-                                            const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, maxUsers: parseInt(e.target.value) } : c);
-                                            setConfigs(newConfigs);
-                                        }}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all"
-                                    />
-                                    {pkg.name === 'High' && <p className="text-[10px] text-yellow-500/60 mt-2 italic">* Immutable tier: 1 user/port</p>}
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Bandwidth</p>
+                                    <p className={clsx(
+                                        "text-lg font-black",
+                                        pkg.name === 'High' ? "text-purple-400" :
+                                            pkg.name === 'Medium' ? "text-blue-400" : "text-emerald-400"
+                                    )}>{speedLabel}</p>
                                 </div>
 
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Auto-Buy Cycle (Days)</label>
-                                    <input
-                                        type="number"
-                                        disabled={!pkg.autoBuyEnabled}
-                                        value={pkg.autoBuyDuration}
-                                        onChange={(e) => {
-                                            const val = Math.max(1, parseInt(e.target.value) || 1);
-                                            const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, autoBuyDuration: val } : c);
-                                            setConfigs(newConfigs);
-                                        }}
-                                        className={clsx(
-                                            "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all",
-                                            !pkg.autoBuyEnabled && "opacity-50 cursor-not-allowed"
-                                        )}
-                                        placeholder="e.g. 7"
-                                    />
-                                    <p className="text-[10px] text-slate-500/60 mt-2 italic">* Duration of new ports</p>
-                                </div>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Max Capacity</label>
+                                        <input
+                                            type="number"
+                                            disabled={pkg.name === 'High'}
+                                            value={pkg.maxUsers}
+                                            onChange={(e) => {
+                                                const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, maxUsers: parseInt(e.target.value) } : c);
+                                                setConfigs(newConfigs);
+                                            }}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all"
+                                        />
+                                        {pkg.name === 'High' && <p className="text-[10px] text-yellow-500/60 mt-2 italic">* Immutable tier: 1 user/port</p>}
+                                    </div>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                    <span className="text-xs font-bold text-slate-400 italic">Auto-Buy Shell</span>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Auto-Buy Cycle (Days)</label>
+                                        <input
+                                            type="number"
+                                            disabled={!pkg.autoBuyEnabled}
+                                            value={pkg.autoBuyDuration}
+                                            onChange={(e) => {
+                                                const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                const newConfigs = configs.map(c => c.name === pkg.name ? { ...c, autoBuyDuration: val } : c);
+                                                setConfigs(newConfigs);
+                                            }}
+                                            className={clsx(
+                                                "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500/50 transition-all",
+                                                !pkg.autoBuyEnabled && "opacity-50 cursor-not-allowed"
+                                            )}
+                                            placeholder="e.g. 7"
+                                        />
+                                        <p className="text-[10px] text-slate-500/60 mt-2 italic">* Duration of new ports</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                        <span className="text-xs font-bold text-slate-400 italic">Auto-Buy Shell</span>
+                                        <button
+                                            onClick={() => {
+                                                const newEnabled = !pkg.autoBuyEnabled;
+                                                handleUpdateConfig(pkg.name, {
+                                                    autoBuyEnabled: newEnabled,
+                                                    autoBuyDuration: pkg.autoBuyDuration
+                                                });
+                                            }}
+                                            className={clsx(
+                                                "w-12 h-6 rounded-full p-1 transition-all",
+                                                pkg.autoBuyEnabled ? "bg-blue-600" : "bg-white/10"
+                                            )}
+                                        >
+                                            <div className={clsx(
+                                                "w-4 h-4 bg-white rounded-full shadow-lg transition-transform",
+                                                pkg.autoBuyEnabled ? "translate-x-6" : "translate-x-0"
+                                            )} />
+                                        </button>
+                                    </div>
+
                                     <button
-                                        onClick={() => handleUpdateConfig(pkg.name, { autoBuyEnabled: !pkg.autoBuyEnabled })}
-                                        className={clsx(
-                                            "w-12 h-6 rounded-full p-1 transition-all",
-                                            pkg.autoBuyEnabled ? "bg-blue-600" : "bg-white/10"
-                                        )}
+                                        onClick={() => handleUpdateConfig(pkg.name, {
+                                            maxUsers: pkg.maxUsers,
+                                            autoBuyDuration: pkg.autoBuyDuration
+                                        })}
+                                        className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
                                     >
-                                        <div className={clsx(
-                                            "w-4 h-4 bg-white rounded-full shadow-lg transition-transform",
-                                            pkg.autoBuyEnabled ? "translate-x-6" : "translate-x-0"
-                                        )} />
+                                        <Save size={14} /> Commit Changes
                                     </button>
                                 </div>
-
-                                <button
-                                    onClick={() => handleUpdateConfig(pkg.name, { maxUsers: pkg.maxUsers })}
-                                    className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
-                                >
-                                    <Save size={14} /> Commit Changes
-                                </button>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             </section>
 
