@@ -22,7 +22,7 @@ async function main() {
     console.log(`✅ Found Admin User:`);
     console.log(`   ID: ${admin.id}`);
     console.log(`   Username: '${admin.username}'`);
-    console.log(`   Current Hash: ${admin.password.substring(0, 10)}...`);
+    console.log(`   Current Hash: ${(admin.password || '').substring(0, 10)}...`);
 
     // 2. Force reset password
     const newPassword = 'Sumit@399180';
