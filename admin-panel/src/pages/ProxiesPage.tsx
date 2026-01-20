@@ -118,8 +118,18 @@ export const ProxiesPage = () => {
                                                         : "bg-blue-500/10 border-blue-500/20 text-blue-400"
                                                 )}>
                                                     {port.packageType === 'High'
-                                                        ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
-                                                        : ((port.currentUsers || 0) >= 3 ? 'Full' : `Shared (${3 - (port.currentUsers || 0)} slots remaining)`)}
+                                                        ? (port.currentUsers > 0 ? 'Occupied' : 'Free')
+                                                        : `${3 - (port.currentUsers || 0)} slots`}
+                                                </span>
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border",
+                                                    port.packageType === 'High'
+                                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                                        : port.packageType === 'Medium'
+                                                            ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                )}>
+                                                    {port.packageType === 'High' ? '∞ Mbps' : port.packageType === 'Medium' ? '3 Mbps' : '1 Mbps'}
                                                 </span>
                                             </div>
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{port.country || 'Unknown'}</h3>
@@ -273,8 +283,18 @@ export const ProxiesPage = () => {
                                                 : "bg-blue-500/10 border-blue-500/20 text-blue-400"
                                         )}>
                                             {port.packageType === 'High'
-                                                ? (port.currentUsers > 0 ? 'Already Occupied' : 'Free')
-                                                : ((port.currentUsers || 0) >= 3 ? 'Full' : `Shared (${3 - (port.currentUsers || 0)} slots remaining)`)}
+                                                ? (port.currentUsers > 0 ? 'Occupied' : 'Free')
+                                                : `${3 - (port.currentUsers || 0)} slots`}
+                                        </span>
+                                        <span className={clsx(
+                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ml-2",
+                                            port.packageType === 'High'
+                                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                                : port.packageType === 'Medium'
+                                                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                        )}>
+                                            {port.packageType === 'High' ? 'PREMIUM' : port.packageType === 'Medium' ? 'MEDIUM' : 'NORMAL'}
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">
