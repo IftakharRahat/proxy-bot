@@ -94,6 +94,44 @@ export class AdminService {
         return ports;
     }
 
+    async changePortTier(portId: number, newTier: string) {
+        // Validate tier
+        const validTiers = ['Normal', 'Medium', 'High'];
+        if (!validTiers.includes(newTier)) {
+            return { success: false, message: `Invalid tier. Must be one of: ${validTiers.join(', ')}` };
+        }
+
+        // Fetch port
+        const port = await this.prisma.port.findUnique({ where: { id: portId } });
+        if (!port) {
+            return { success: false, message: 'Port not found' };
+        }
+
+        // Check if port has active users
+        if (port.currentUsers > 0) {
+            return { success: false, message: 'Cannot change tier while users are connected. Wait for 0 connections.' };
+        }
+
+        // Update tier and maxUsers
+        const newMaxUsers = newTier === 'High' ? 1 : 3;
+        await this.prisma.port.update({
+            where: { id: portId },
+            data: {
+                packageType: newTier,
+                maxUsers: newMaxUsers
+            }
+        });
+
+        // Rebuild 3proxy config to apply new bandwidth limits
+        await this.proxyChain.rebuildConfig();
+
+        this.logger.log(`Port ${portId} tier changed from ${port.packageType} to ${newTier}`);
+        return {
+            success: true,
+            message: `Port tier changed to ${newTier} (${newTier === 'High' ? 'Unlimited' : newTier === 'Medium' ? '3 Mbps' : '1 Mbps'})`
+        };
+    }
+
     async syncProxyConfig() {
         this.logger.log('Manual proxy config sync requested');
         await this.proxyChain.rebuildConfig();

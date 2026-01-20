@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Globe, RefreshCw, Zap, Clock, ShieldCheck, Database, LayoutGrid, List, Users } from 'lucide-react';
+import { Globe, RefreshCw, Zap, Clock, ShieldCheck, Database, LayoutGrid, List, Users, Edit3 } from 'lucide-react';
 import clsx from 'clsx';
 
 export const ProxiesPage = () => {
@@ -42,6 +42,24 @@ export const ProxiesPage = () => {
             fetchPorts();
         } catch (err) {
             alert('Failed to rotate proxy');
+        }
+    };
+
+    const handleChangeTier = async (id: number, currentTier: string) => {
+        const tierOptions = ['Normal', 'Medium', 'High'].filter(t => t !== currentTier);
+        const newTier = prompt(`Current tier: ${currentTier}\nChange to:\n- ${tierOptions.join('\n- ')}\n\nEnter new tier:`, tierOptions[0]);
+        if (!newTier) return;
+
+        try {
+            const res = await api.patch(`/admin/proxies/${id}/change-tier`, { newTier });
+            if (res.data.success) {
+                alert(res.data.message);
+                fetchPorts();
+            } else {
+                alert('Failed: ' + res.data.message);
+            }
+        } catch (err: any) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
         }
     };
 
@@ -217,6 +235,18 @@ export const ProxiesPage = () => {
                                 </div>
 
                                 <div className="space-y-3 pt-4 border-t border-white/5">
+                                    {(port.currentUsers || 0) === 0 && (
+                                        <button
+                                            onClick={() => handleChangeTier(port.id, port.packageType)}
+                                            className="w-full flex items-center justify-between px-6 py-3 bg-amber-500/10 hover:bg-amber-500/20 rounded-2xl border border-amber-500/20 text-xs font-black text-amber-400 uppercase tracking-widest transition-all group/btn"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Edit3 size={14} className="group-hover/btn:rotate-12 transition-transform" />
+                                                Edit Tier
+                                            </div>
+                                            <span className="text-[9px] text-amber-500/60">{port.packageType}</span>
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleChangeCountry(port.id)}
                                         className="w-full flex items-center justify-between px-6 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-xs font-black text-slate-200 uppercase tracking-widest transition-all group/btn"

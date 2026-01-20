@@ -82,6 +82,11 @@ export class AdminController {
         return this.adminService.changeCountry(parseInt(id, 10), body.newCountry);
     }
 
+    @Patch('proxies/:id/change-tier')
+    async changeTier(@Param('id') id: string, @Body() body: { newTier: string }) {
+        return this.adminService.changePortTier(parseInt(id, 10), body.newTier);
+    }
+
     @Get('transactions')
     async getTransactions() {
         return this.adminService.getAllTransactions();
