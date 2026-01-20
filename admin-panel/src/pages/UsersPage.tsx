@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getUsers, adjustUserBalance, api } from '../api/client';
-import { User, DollarSign, Shield, Calendar, Terminal, X, Plus, Minus, Package } from 'lucide-react';
+import { User, DollarSign, Shield, Calendar, Terminal, X, Plus, Minus, Package, Search } from 'lucide-react';
 
 interface BalanceModalProps {
     user: any;
@@ -420,22 +420,6 @@ const UserList = ({ users, onSelect, onAssign }: { users: any[], onSelect: (u: a
                     <p className="text-xs italic font-medium">Total registered nodes: {users.length}</p>
                 </div>
             </div>
-
-            {selectedUser && (
-                <BalanceModal
-                    user={selectedUser}
-                    onClose={() => setSelectedUser(null)}
-                    onSuccess={fetchUsers}
-                />
-            )}
-
-            {assignUser && (
-                <AssignPackageModal
-                    user={assignUser}
-                    onClose={() => setAssignUser(null)}
-                    onSuccess={fetchUsers}
-                />
-            )}
         </div>
     );
 };
