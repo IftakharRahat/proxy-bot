@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Globe, RefreshCw, Zap, Clock, ShieldCheck, Database, LayoutGrid, List, Users, Edit3 } from 'lucide-react';
+import { Globe, RefreshCw, Zap, Clock, ShieldCheck, Database, LayoutGrid, List, Users, Edit3, Power, X, Eye } from 'lucide-react';
 import clsx from 'clsx';
 
 export const ProxiesPage = () => {
     const [ports, setPorts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [expandedPort, setExpandedPort] = useState<number | null>(null);
 
     const fetchPorts = async () => {
         try {
@@ -52,6 +53,35 @@ export const ProxiesPage = () => {
 
         try {
             const res = await api.patch(`/admin/proxies/${id}/change-tier`, { newTier });
+            if (res.data.success) {
+                alert(res.data.message);
+                fetchPorts();
+            } else {
+                alert('Failed: ' + res.data.message);
+            }
+        } catch (err: any) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleTogglePort = async (id: number) => {
+        try {
+            const res = await api.patch(`/admin/proxies/${id}/toggle`);
+            if (res.data.success) {
+                alert(res.data.message);
+                fetchPorts();
+            } else {
+                alert('Failed: ' + res.data.message);
+            }
+        } catch (err: any) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleCancelSession = async (sessionId: number) => {
+        if (!confirm('Are you sure you want to cancel this session? The user will lose access.')) return;
+        try {
+            const res = await api.delete(`/admin/sessions/${sessionId}`);
             if (res.data.success) {
                 alert(res.data.message);
                 fetchPorts();
@@ -235,6 +265,58 @@ export const ProxiesPage = () => {
                                 </div>
 
                                 <div className="space-y-3 pt-4 border-t border-white/5">
+                                    {/* Port On/Off Toggle */}
+                                    <button
+                                        onClick={() => handleTogglePort(port.id)}
+                                        className={clsx(
+                                            "w-full flex items-center justify-between px-6 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all",
+                                            port.isActive
+                                                ? "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20"
+                                                : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Power size={14} />
+                                            {port.isActive ? 'Port Active' : 'Port Disabled'}
+                                        </div>
+                                        <span className="text-[9px] opacity-60">{port.isActive ? 'Click to Disable' : 'Click to Enable'}</span>
+                                    </button>
+
+                                    {/* View Users Button */}
+                                    {port.sessions?.length > 0 && (
+                                        <button
+                                            onClick={() => setExpandedPort(expandedPort === port.id ? null : port.id)}
+                                            className="w-full flex items-center justify-between px-6 py-3 bg-purple-500/10 hover:bg-purple-500/20 rounded-2xl border border-purple-500/20 text-xs font-black text-purple-400 uppercase tracking-widest transition-all"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Eye size={14} />
+                                                View Users ({port.sessions.length})
+                                            </div>
+                                            <span className={clsx("transition-transform", expandedPort === port.id && "rotate-180")}>▼</span>
+                                        </button>
+                                    )}
+
+                                    {/* Expanded Session List */}
+                                    {expandedPort === port.id && port.sessions?.length > 0 && (
+                                        <div className="bg-white/[0.02] rounded-2xl p-4 border border-white/5 space-y-2">
+                                            {port.sessions.map((session: any) => (
+                                                <div key={session.id} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl border border-white/5">
+                                                    <div>
+                                                        <p className="text-sm text-white font-bold">@{session.user?.username || 'unknown'}</p>
+                                                        <p className="text-[10px] text-slate-500">Expires: {new Date(session.expiresAt).toLocaleDateString()}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleCancelSession(session.id)}
+                                                        className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 text-red-400 transition-all"
+                                                        title="Cancel Session"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {(port.currentUsers || 0) === 0 && (
                                         <button
                                             onClick={() => handleChangeTier(port.id, port.packageType)}

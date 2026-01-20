@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Server, BadgeDollarSign, Settings, LogOut, PackageSearch, History } from 'lucide-react';
+import { LayoutDashboard, Users, Server, BadgeDollarSign, Settings, LogOut, PackageSearch, History, Search, X } from 'lucide-react';
 import clsx from 'clsx';
+import { api } from '../api/client';
 
 const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => {
     const location = useLocation();
@@ -27,10 +29,39 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: 
 
 export const MainLayout = () => {
     const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showResults, setShowResults] = useState(false);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/login');
+    };
+
+    // Debounced search
+    useEffect(() => {
+        if (searchQuery.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            try {
+                const res = await api.get(`/admin/users/search?q=${encodeURIComponent(searchQuery)}`);
+                setSearchResults(res.data);
+                setShowResults(true);
+            } catch (e) {
+                console.error('Search failed', e);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    const clearSearch = () => {
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowResults(false);
     };
 
     return (
@@ -87,6 +118,61 @@ export const MainLayout = () => {
                         <h2 className="text-xl font-bold text-white tracking-tight">Administrative Console</h2>
                         <p className="text-xs text-slate-500">System Monitoring & Resource Control</p>
                     </div>
+
+                    {/* Global Search Bar */}
+                    <div className="relative flex-1 max-w-md mx-8">
+                        <div className="relative">
+                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => searchResults.length > 0 && setShowResults(true)}
+                                placeholder="Search users..."
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            />
+                            {searchQuery && (
+                                <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Search Results Dropdown */}
+                        {showResults && searchResults.length > 0 && (
+                            <div className="absolute top-full mt-2 w-full bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto">
+                                {searchResults.map((user: any) => (
+                                    <div
+                                        key={user.id}
+                                        className="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all"
+                                        onClick={() => {
+                                            navigate('/users');
+                                            clearSearch();
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-white font-bold">@{user.username || 'unknown'}</p>
+                                            <span className="text-blue-400 font-black">৳{user.balance}</span>
+                                        </div>
+                                        {user.sessions?.length > 0 ? (
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Active Packages:</p>
+                                                {user.sessions.map((s: any) => (
+                                                    <div key={s.id} className="text-xs text-slate-400 flex justify-between">
+                                                        <span>Port {s.port?.port} ({s.port?.packageType})</span>
+                                                        <span className="text-emerald-400">{new Date(s.expiresAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[10px] text-slate-600 italic">No active packages</p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex items-center gap-6">
                         <div className="hidden md:flex flex-col items-end">
                             <span className="text-sm font-bold text-white">System Admin</span>

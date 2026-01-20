@@ -26,6 +26,11 @@ export class AdminController {
         return this.adminService.getAllUsers();
     }
 
+    @Get('users/search')
+    async searchUsers(@Query('q') query: string) {
+        return this.adminService.searchUsers(query);
+    }
+
     @Patch('users/:id/balance')
     async adjustUserBalance(
         @Param('id') id: string,
@@ -85,6 +90,21 @@ export class AdminController {
     @Patch('proxies/:id/change-tier')
     async changeTier(@Param('id') id: string, @Body() body: { newTier: string }) {
         return this.adminService.changePortTier(parseInt(id, 10), body.newTier);
+    }
+
+    @Patch('proxies/:id/toggle')
+    async togglePort(@Param('id') id: string) {
+        return this.adminService.togglePortStatus(parseInt(id, 10));
+    }
+
+    @Delete('sessions/:id')
+    async cancelSession(@Param('id') id: string) {
+        return this.adminService.cancelSession(parseInt(id, 10));
+    }
+
+    @Post('assign-package')
+    async assignPackage(@Body() body: { userId: number; portId: number; durationHours: number }) {
+        return this.adminService.manualAssignPackage(body.userId, body.portId, body.durationHours);
     }
 
     @Get('transactions')

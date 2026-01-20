@@ -32,6 +32,38 @@ export class AdminService {
         });
     }
 
+    async searchUsers(query: string) {
+        if (!query || query.length < 2) {
+            return [];
+        }
+
+        return this.prisma.user.findMany({
+            where: {
+                username: {
+                    contains: query,
+                    mode: 'insensitive'
+                }
+            },
+            take: 10,
+            select: {
+                id: true,
+                telegramId: true,
+                username: true,
+                balance: true,
+                sessions: {
+                    where: { status: 'ACTIVE' },
+                    select: {
+                        id: true,
+                        expiresAt: true,
+                        port: {
+                            select: { port: true, country: true, packageType: true }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     async adjustUserBalance(userId: number, amount: number, operation: 'add' | 'subtract', reason?: string) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
@@ -129,6 +161,118 @@ export class AdminService {
         return {
             success: true,
             message: `Port tier changed to ${newTier} (${newTier === 'High' ? 'Unlimited' : newTier === 'Medium' ? '3 Mbps' : '1 Mbps'})`
+        };
+    }
+
+    async togglePortStatus(portId: number) {
+        const port = await this.prisma.port.findUnique({ where: { id: portId } });
+        if (!port) {
+            return { success: false, message: 'Port not found' };
+        }
+
+        const newStatus = !port.isActive;
+        await this.prisma.port.update({
+            where: { id: portId },
+            data: { isActive: newStatus }
+        });
+
+        // Rebuild 3proxy config to reflect the change
+        await this.proxyChain.rebuildConfig();
+
+        this.logger.log(`Port ${portId} toggled to ${newStatus ? 'ACTIVE' : 'INACTIVE'}`);
+        return {
+            success: true,
+            message: `Port ${newStatus ? 'enabled' : 'disabled'} successfully`,
+            isActive: newStatus
+        };
+    }
+
+    async cancelSession(sessionId: number) {
+        const session = await this.prisma.proxySession.findUnique({
+            where: { id: sessionId },
+            include: { port: true }
+        });
+
+        if (!session) {
+            return { success: false, message: 'Session not found' };
+        }
+
+        // Delete the session
+        await this.prisma.proxySession.delete({ where: { id: sessionId } });
+
+        // Decrement currentUsers on the port
+        await this.prisma.port.update({
+            where: { id: session.portId },
+            data: { currentUsers: { decrement: 1 } }
+        });
+
+        // Rebuild 3proxy config to remove user access
+        await this.proxyChain.rebuildConfig();
+
+        this.logger.log(`Session ${sessionId} cancelled by admin`);
+        return { success: true, message: 'Session cancelled successfully' };
+    }
+
+    async manualAssignPackage(userId: number, portId: number, durationHours: number) {
+        // Validate user exists
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return { success: false, message: 'User not found' };
+        }
+
+        // Validate port exists and has capacity
+        const port = await this.prisma.port.findUnique({ where: { id: portId } });
+        if (!port) {
+            return { success: false, message: 'Port not found' };
+        }
+        if (!port.isActive) {
+            return { success: false, message: 'Port is disabled' };
+        }
+        if (port.currentUsers >= port.maxUsers) {
+            return { success: false, message: 'Port is at full capacity' };
+        }
+
+        // Generate credentials
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const proxyUser = `user-${userId}-${randomSuffix}`;
+        const proxyPass = Math.random().toString(36).substring(2, 12);
+
+        // Calculate expiry
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + durationHours);
+
+        // Create session
+        const session = await this.prisma.proxySession.create({
+            data: {
+                userId,
+                portId,
+                proxyUser,
+                proxyPass,
+                expiresAt,
+                status: 'ACTIVE',
+                rotationPeriod: 30,
+            }
+        });
+
+        // Increment currentUsers
+        await this.prisma.port.update({
+            where: { id: portId },
+            data: { currentUsers: { increment: 1 } }
+        });
+
+        // Rebuild 3proxy config
+        await this.proxyChain.rebuildConfig();
+
+        this.logger.log(`Admin manually assigned package to user ${userId} on port ${portId} for ${durationHours} hours`);
+        return {
+            success: true,
+            message: `Package assigned successfully! Expires: ${expiresAt.toLocaleString()}`,
+            session: {
+                id: session.id,
+                proxyUser,
+                proxyPass,
+                expiresAt
+            }
         };
     }
 
