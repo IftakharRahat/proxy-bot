@@ -532,7 +532,7 @@ export class AdminService {
                         country: port.region || 'Random',
                         protocol: 'HTTP',
                         packageType: packageType,
-                        maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
+                        maxUsers: packageType === 'High' ? 1 : 3, // Normal=3, Medium=3, High=1
                         isActive: true,
                         localPort: localPortVal,
                         upstreamHost: port.ip,
@@ -677,7 +677,7 @@ export class AdminService {
                         country: port.region || 'Random',
                         protocol: 'HTTP',
                         packageType: packageType,
-                        maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
+                        maxUsers: packageType === 'High' ? 1 : 3, // Normal=3, Medium=3, High=1
                         isActive: true,
                         localPort: localPortVal,
                         upstreamHost: port.ip,
