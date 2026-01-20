@@ -299,10 +299,22 @@ export class AdminService {
     }
 
     async updatePackageConfig(name: string, data: { maxUsers?: number; autoBuyEnabled?: boolean; autoBuyDuration?: number }) {
-        return this.prisma.packageConfig.update({
+        // Update the package config
+        const updated = await this.prisma.packageConfig.update({
             where: { name },
             data,
         });
+
+        // If maxUsers was changed, also update all existing ports of this tier
+        if (data.maxUsers !== undefined) {
+            await this.prisma.port.updateMany({
+                where: { packageType: name },
+                data: { maxUsers: data.maxUsers }
+            });
+            this.logger.log(`Updated maxUsers to ${data.maxUsers} for all ${name} tier ports`);
+        }
+
+        return updated;
     }
 
     async getPurchaseLogs() {
