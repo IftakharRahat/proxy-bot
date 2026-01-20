@@ -206,11 +206,12 @@ const AssignPackageModal = ({ user, onClose, onSuccess }: AssignPackageModalProp
                         <select
                             value={selectedPort || ''}
                             onChange={(e) => setSelectedPort(parseInt(e.target.value))}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            style={{ colorScheme: 'dark' }}
                         >
-                            <option value="">-- Select a Port --</option>
+                            <option value="" className="bg-[#0f172a] text-slate-400">-- Select a Port --</option>
                             {ports.map(port => (
-                                <option key={port.id} value={port.id}>
+                                <option key={port.id} value={port.id} className="bg-[#0f172a] text-white">
                                     Port {port.port} ({port.packageType}) - {port.country} [{port.currentUsers}/{port.maxUsers}]
                                 </option>
                             ))}
