@@ -21,7 +21,7 @@ export class AuthService implements OnModuleInit {
         });
 
         if (!adminExists) {
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const hashedPassword = await bcrypt.hash('Sumit@399180', 10);
             await this.prisma.user.create({
                 data: {
                     telegramId: 'admin_placeholder_' + Date.now(),
