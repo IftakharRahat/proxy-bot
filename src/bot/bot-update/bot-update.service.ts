@@ -324,11 +324,14 @@ export class BotUpdateService {
         // Show available ports based on tier requirements
         // Premium (High) needs an empty port (currentUsers == 0)
         // Normal/Medium need a port with capacity (currentUsers < 3)
+        // Convert tier to proper case for packageType match
+        const tierCap = tier.charAt(0).toUpperCase() + tier.slice(1); // 'normal' -> 'Normal'
+
         let availablePorts = await this.prisma.port.findMany({
             where: {
                 isActive: true,
+                packageType: tierCap, // Filter by the selected tier
                 currentUsers: tier === 'high' ? 0 : { lt: 3 },
-                // Category-agnostic: don't filter by packageType here if we want to use 'Normal' ports for 'High'
                 country: country === 'Random' ? undefined : (country === 'US' ? { in: ['US', 'USA', 'United States'] } : { in: ['Canada', 'CA', 'CAN'] }),
             },
             take: 20,
