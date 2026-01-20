@@ -167,7 +167,7 @@ export const ProxiesPage = () => {
                                                 )}>
                                                     {port.packageType === 'High'
                                                         ? (port.currentUsers > 0 ? 'Occupied' : 'Free')
-                                                        : `${3 - (port.currentUsers || 0)} slots`}
+                                                        : `${(port.maxUsers || 3) - (port.currentUsers || 0)} slots`}
                                                 </span>
                                                 <span className={clsx(
                                                     "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border",
