@@ -286,6 +286,56 @@ export const UsersPage = () => {
                 <p className="text-slate-500 mt-1 font-medium italic text-sm">Manage user identities, balances, and terminal access credentials.</p>
             </header>
 
+            <UserList users={users} onSelect={setSelectedUser} onAssign={setAssignUser} />
+
+            {selectedUser && (
+                <BalanceModal
+                    user={selectedUser}
+                    onClose={() => setSelectedUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
+
+            {assignUser && (
+                <AssignPackageModal
+                    user={assignUser}
+                    onClose={() => setAssignUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
+        </div>
+    );
+};
+
+const UserList = ({ users, onSelect, onAssign }: { users: any[], onSelect: (u: any) => void, onAssign: (u: any) => void }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filteredUsers, setFilteredUsers] = useState(users);
+
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setFilteredUsers(users);
+        } else {
+            const term = searchTerm.toLowerCase().trim();
+            setFilteredUsers(users.filter(user =>
+                user.telegramId?.toLowerCase().includes(term) ||
+                user.username?.toLowerCase().includes(term)
+            ));
+        }
+    }, [searchTerm, users]);
+
+    return (
+        <div className="space-y-6">
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                <input
+                    type="text"
+                    placeholder="Search by Identity Hash ID (Telegram ID)..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                />
+            </div>
+
             <div className="glass-card rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
                 <div className="px-8 py-6 bg-white/[0.02] border-b border-white/5 flex items-center gap-3">
                     <Terminal className="text-blue-400" size={18} />
@@ -305,7 +355,7 @@ export const UsersPage = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.02]">
-                            {users.map((user) => (
+                            {filteredUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-white/[0.01] transition-all group">
                                     <td className="px-8 py-6">
                                         <span className="text-sm font-black text-slate-500 tabular-nums">#{user.id.toString().padStart(4, '0')}</span>
@@ -344,7 +394,7 @@ export const UsersPage = () => {
                                         <div className="flex justify-center gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => setSelectedUser(user)}
+                                                onClick={() => onSelect(user)}
                                                 className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 leading-none"
                                             >
                                                 <DollarSign size={14} />
@@ -352,7 +402,7 @@ export const UsersPage = () => {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setAssignUser(user)}
+                                                onClick={() => onAssign(user)}
                                                 className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95 leading-none"
                                             >
                                                 <Package size={14} />
