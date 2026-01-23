@@ -136,7 +136,7 @@ auth strong
 flush
 ${allowLines}
 ${bandlim}${parentConnect}
-socks -a -p${socksPort}
+socks -p${socksPort}
 `;
         }
 
