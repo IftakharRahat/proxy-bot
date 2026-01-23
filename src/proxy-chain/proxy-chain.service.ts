@@ -143,7 +143,6 @@ proxy -p${port.localPort}
                 config += `
 # ===== PORT ${userSocksPort} - SOCKS5 for ${session.proxyUser} (${port.country ?? 'N/A'}, ${port.packageType}) =====
 auth strong
-flush
 allow ${session.proxyUser} 0.0.0.0/0
 ${bandlim}${parentSOCKS}
 socks -p${userSocksPort}
