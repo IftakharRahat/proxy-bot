@@ -20,47 +20,67 @@ async function testAllPorts() {
         console.log('='.repeat(80));
 
         for (const session of sessions) {
-            const httpPort = session.port.localPort || session.port.port;
-            const socksPort = httpPort + 5000 + (session.id % 1000);
-            const host = session.port.host;
+            const isHigh = session.port.packageType === 'High';
+            const httpPort = isHigh ? (session.port.upstreamPort || session.port.port) : (session.port.localPort || session.port.port);
+            const socksPort = isHigh ? (session.port.upstreamPort || session.port.port) : ((session.port.localPort || session.port.port) + 5000);
+            const host = isHigh ? (session.port.upstreamHost || session.port.host) : session.port.host;
             const user = session.proxyUser;
             const pass = session.proxyPass;
+            const protocol = session.port.protocol || 'HTTP';
 
-            console.log(`\n🔹 Port ${httpPort} (${session.port.country}) - User: ${user}`);
+            console.log(`\n🔹 ${session.port.packageType} Tier - ${session.port.country} (Protocol: ${protocol})`);
+            console.log(`   User: ${user}`);
+            console.log(`   Host: ${host}`);
             console.log(`   HTTP Port: ${httpPort}`);
             console.log(`   SOCKS5 Port: ${socksPort}`);
-
-            // Test HTTP
-            console.log(`   Testing HTTP...`);
-            try {
-                const httpResult = execSync(
-                    `curl -s --max-time 5 -x http://${user}:${pass}@${host}:${httpPort} http://api.ipify.org`,
-                    { encoding: 'utf-8', stdio: 'pipe' }
-                );
-                console.log(`   ✅ HTTP OK: ${httpResult.trim()}`);
-            } catch (err) {
-                console.log(`   ❌ HTTP FAILED: ${err.message.split('\n')[0]}`);
+            if (isHigh) {
+                console.log(`   ⚠️  High Tier: Direct connection to NovProxy`);
             }
 
-            // Test SOCKS5
-            console.log(`   Testing SOCKS5...`);
+            // Test HTTP
+            console.log(`   🔍 Testing HTTP (Upstream Protocol: ${protocol})...`);
             try {
-                const socksResult = execSync(
-                    `curl -s --max-time 5 --socks5 ${user}:${pass}@${host}:${socksPort} http://api.ipify.org`,
+                const httpResult = execSync(
+                    `curl -s --max-time 10 -x http://${user}:${pass}@${host}:${httpPort} http://api.ipify.org`,
                     { encoding: 'utf-8', stdio: 'pipe' }
                 );
-                if (socksResult.includes('auth fail')) {
-                    console.log(`   ❌ SOCKS5 FAILED: auth fail`);
+                const ip = httpResult.trim();
+                if (ip && ip.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+                    console.log(`   ✅ HTTP OK: IP = ${ip}`);
                 } else {
-                    console.log(`   ✅ SOCKS5 OK: ${socksResult.trim()}`);
+                    console.log(`   ⚠️  HTTP Response: ${ip.substring(0, 50)}`);
                 }
             } catch (err) {
                 const errorMsg = err.message || err.stderr?.toString() || 'Unknown error';
-                if (errorMsg.includes('auth fail')) {
-                    console.log(`   ❌ SOCKS5 FAILED: auth fail`);
-                } else {
-                    console.log(`   ❌ SOCKS5 FAILED: ${errorMsg.split('\n')[0]}`);
+                console.log(`   ❌ HTTP FAILED: ${errorMsg.split('\n')[0].substring(0, 100)}`);
+            }
+
+            // Test SOCKS5 (only for shared ports or if upstream supports SOCKS5)
+            if (!isHigh || protocol === 'SOCKS5') {
+                console.log(`   🔍 Testing SOCKS5...`);
+                try {
+                    const socksResult = execSync(
+                        `curl -s --max-time 10 --socks5 ${user}:${pass}@${host}:${socksPort} http://api.ipify.org`,
+                        { encoding: 'utf-8', stdio: 'pipe' }
+                    );
+                    const ip = socksResult.trim();
+                    if (ip && ip.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+                        console.log(`   ✅ SOCKS5 OK: IP = ${ip}`);
+                    } else if (socksResult.includes('auth fail') || socksResult.includes('Authentication failed')) {
+                        console.log(`   ❌ SOCKS5 FAILED: Authentication failed`);
+                    } else {
+                        console.log(`   ⚠️  SOCKS5 Response: ${ip.substring(0, 50)}`);
+                    }
+                } catch (err) {
+                    const errorMsg = err.message || err.stderr?.toString() || 'Unknown error';
+                    if (errorMsg.includes('auth fail') || errorMsg.includes('Authentication failed')) {
+                        console.log(`   ❌ SOCKS5 FAILED: Authentication failed`);
+                    } else {
+                        console.log(`   ❌ SOCKS5 FAILED: ${errorMsg.split('\n')[0].substring(0, 100)}`);
+                    }
                 }
+            } else {
+                console.log(`   ⚠️  SOCKS5 test skipped (High tier with HTTP upstream)`);
             }
 
             console.log('-'.repeat(80));
@@ -68,6 +88,16 @@ async function testAllPorts() {
 
         console.log('\n📊 Summary:');
         console.log(`   Total Sessions: ${sessions.length}`);
+        
+        const highTierCount = sessions.filter(s => s.port.packageType === 'High').length;
+        const sharedTierCount = sessions.length - highTierCount;
+        const httpProtocolCount = sessions.filter(s => s.port.protocol === 'HTTP').length;
+        const socks5ProtocolCount = sessions.filter(s => s.port.protocol === 'SOCKS5').length;
+        
+        console.log(`   High Tier (Direct): ${highTierCount}`);
+        console.log(`   Shared Tier (VPS Chain): ${sharedTierCount}`);
+        console.log(`   HTTP Protocol: ${httpProtocolCount}`);
+        console.log(`   SOCKS5 Protocol: ${socks5ProtocolCount}`);
         
     } catch (error) {
         console.error('❌ Error:', error.message);
