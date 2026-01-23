@@ -111,14 +111,14 @@ export class BotUpdateService {
             const isSocks5 = portInfo?.protocol === 'SOCKS5';
             const isHigh = tier === 'high';
             
-            // Calculate per-user SOCKS5 port: localPort + 5000 + (session.id % 1000)
+            // Calculate per-user SOCKS5 port: localPort + 5000 + (sessionId % 1000)
             // This matches the 3proxy config generation logic
             const sessionRecord = await this.prisma.proxySession.findUnique({ 
-                where: { id: session.id },
+                where: { id: session.sessionId },
                 include: { port: true }
             });
             const userSocksPort = sessionRecord && !isHigh 
-                ? (sessionRecord.port.localPort || sessionRecord.port.port) + 5000 + (session.id % 1000)
+                ? (sessionRecord.port.localPort || sessionRecord.port.port) + 5000 + (session.sessionId % 1000)
                 : (isHigh ? session.port : session.port + 5000);
             
             let connectionInfo = '';
