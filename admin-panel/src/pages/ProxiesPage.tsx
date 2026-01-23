@@ -147,7 +147,12 @@ export const ProxiesPage = () => {
             ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {ports.map((port) => (
-                        <div key={port.id} className="glass-card rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500">
+                        <div key={port.id} className={clsx(
+                            "glass-card rounded-[2.5rem] p-8 border relative overflow-hidden group hover:border-white/10 transition-all duration-500",
+                            port.isActive 
+                                ? "border-white/5" 
+                                : "border-red-500/20 bg-red-500/5 opacity-75"
+                        )}>
                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-600/10 blur-2xl group-hover:bg-blue-600/20 transition-all" />
 
                             <div className="relative z-10 space-y-6">
@@ -183,10 +188,21 @@ export const ProxiesPage = () => {
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">{port.country || 'Unknown'}</h3>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">
-                                            {port.currentUsers || 0} Connected
+                                    <div className={clsx(
+                                        "flex items-center gap-2 px-3 py-1 border rounded-full",
+                                        port.isActive
+                                            ? "bg-green-500/10 border-green-500/20"
+                                            : "bg-red-500/10 border-red-500/20"
+                                    )}>
+                                        <div className={clsx(
+                                            "w-1.5 h-1.5 rounded-full",
+                                            port.isActive ? "bg-green-400 animate-pulse" : "bg-red-400"
+                                        )} />
+                                        <span className={clsx(
+                                            "text-[10px] font-black uppercase tracking-widest",
+                                            port.isActive ? "text-green-400" : "text-red-400"
+                                        )}>
+                                            {port.isActive ? `${port.currentUsers || 0} Connected` : 'INACTIVE'}
                                         </span>
                                     </div>
                                 </div>
@@ -369,7 +385,10 @@ export const ProxiesPage = () => {
                         </thead>
                         <tbody className="divide-y divide-white/[0.02]">
                             {ports.map((port) => (
-                                <tr key={port.id} className="hover:bg-white/[0.01] transition-all group">
+                                <tr key={port.id} className={clsx(
+                                    "hover:bg-white/[0.01] transition-all group",
+                                    !port.isActive && "opacity-60 bg-red-500/5"
+                                )}>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-white/5">
@@ -388,26 +407,34 @@ export const ProxiesPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <span className={clsx(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                            port.packageType === 'High'
-                                                ? (port.currentUsers > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")
-                                                : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                        )}>
-                                            {port.packageType === 'High'
-                                                ? (port.currentUsers > 0 ? 'Occupied' : 'Free')
-                                                : `${3 - (port.currentUsers || 0)} slots`}
-                                        </span>
-                                        <span className={clsx(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ml-2",
-                                            port.packageType === 'High'
-                                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                                                : port.packageType === 'Medium'
-                                                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                                                    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                        )}>
-                                            {port.packageType === 'High' ? 'PREMIUM' : port.packageType === 'Medium' ? 'MEDIUM' : 'NORMAL'}
-                                        </span>
+                                        {!port.isActive ? (
+                                            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-red-500/10 border-red-500/20 text-red-400">
+                                                INACTIVE
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <span className={clsx(
+                                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                                    port.packageType === 'High'
+                                                        ? (port.currentUsers > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")
+                                                        : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                                )}>
+                                                    {port.packageType === 'High'
+                                                        ? (port.currentUsers > 0 ? 'Occupied' : 'Free')
+                                                        : `${3 - (port.currentUsers || 0)} slots`}
+                                                </span>
+                                                <span className={clsx(
+                                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ml-2",
+                                                    port.packageType === 'High'
+                                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                                        : port.packageType === 'Medium'
+                                                            ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                )}>
+                                                    {port.packageType === 'High' ? 'PREMIUM' : port.packageType === 'Medium' ? 'MEDIUM' : 'NORMAL'}
+                                                </span>
+                                            </>
+                                        )}
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg font-mono text-[11px] text-emerald-400 font-bold inline-block">

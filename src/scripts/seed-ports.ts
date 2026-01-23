@@ -39,7 +39,8 @@ async function bootstrap() {
                     host: port.ip,
                     port: port.port,
                     country: port.region,
-                    isActive: true,
+                    // PRESERVE existing isActive status - don't reactivate disabled ports
+                    // isActive is not included in update, so it will remain unchanged
                 },
             });
         }

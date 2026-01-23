@@ -123,6 +123,8 @@ export class SessionManagerService {
         try {
             if (effectiveTier === 'High') {
                 // Direct Sync with Novproxy - User gets DIRECT connection to residential provider
+                // Preserve protocol format: '1' for HTTP, '2' for SOCKS5
+                const format = session.port.protocol === 'SOCKS5' ? '2' : '1';
                 await this.novproxy.batchEditPorts(
                     [portId],
                     {
@@ -130,9 +132,10 @@ export class SessionManagerService {
                         password: session.proxyPass,
                         region: session.port.country,
                         minute: session.rotationPeriod,
+                        format: format,
                     }
                 );
-                this.logger.log(`Direct Novproxy sync successful for Port ${portId} (Premium Tier)`);
+                this.logger.log(`Direct Novproxy sync successful for Port ${portId} (Premium Tier, Protocol: ${session.port.protocol})`);
             } else {
                 // Shared Port -> Update Local VPS Config (with bandwidth limiting)
                 // We do NOT change upstream credentials (batchEditPorts) because other users share it.
@@ -195,11 +198,13 @@ export class SessionManagerService {
             if (session.port.packageType === 'High') {
                 // For Premium: Change credentials on Novproxy to something random
                 const randomCreds = this.generateSessionCredentials(0, session.portId);
+                const format = session.port.protocol === 'SOCKS5' ? '2' : '1';
                 await this.novproxy.batchEditPorts([session.portId], {
                     username: randomCreds.username,
                     password: randomCreds.password,
                     region: session.port.country || 'us',
                     minute: session.rotationPeriod || 30,
+                    format: format,
                 });
                 this.logger.log(`Locked Novproxy port ${session.portId} with random credentials`);
             } else {
@@ -274,6 +279,7 @@ export class SessionManagerService {
         try {
             // Only update upstream for Dedicated/High ports
             if (session.port.packageType === 'High') {
+                const format = session.port.protocol === 'SOCKS5' ? '2' : '1';
                 await this.novproxy.batchEditPorts(
                     [session.portId],
                     {
@@ -281,9 +287,10 @@ export class SessionManagerService {
                         password: newCredentials.password,
                         region: session.port.country,
                         minute: session.rotationPeriod,
+                        format: format,
                     }
                 );
-                this.logger.log(`Novproxy sync successful for session ${sessionId}`);
+                this.logger.log(`Novproxy sync successful for session ${sessionId} (Protocol: ${session.port.protocol})`);
             }
 
             // Update DB

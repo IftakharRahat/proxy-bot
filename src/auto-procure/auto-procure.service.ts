@@ -101,13 +101,22 @@ export class AutoProcurementService {
             // B.1 Apply Settings (Country & Rotation)
             // FUNDAMENTAL FIX: Ensure the port is labeled correctly on Novproxy
             const targetRegion = country === 'Random' ? 'US' : country;
+            // Detect and preserve protocol format
+            let detectedFormat = '1'; // Default to HTTP
+            if (purchasedPort.format) {
+                const formatStr = purchasedPort.format.toString().toLowerCase();
+                if (formatStr === '2' || formatStr.includes('socks')) {
+                    detectedFormat = '2'; // SOCKS5
+                }
+            }
             await this.novproxy.batchEditPorts([purchasedPort.id], {
                 username: purchasedPort.username,
                 password: purchasedPort.password,
                 region: targetRegion,
                 minute: 30, // Default rotation for auto-buy
+                format: detectedFormat,
             });
-            this.logger.log(`Port ${purchasedPort.id} settings applied: Region=${targetRegion}`);
+            this.logger.log(`Port ${purchasedPort.id} settings applied: Region=${targetRegion}, Protocol=${detectedFormat === '2' ? 'SOCKS5' : 'HTTP'}`);
 
             // C. Determine Local Port (for Shared)
             let localPort: number | null = null;
@@ -141,11 +150,20 @@ export class AutoProcurementService {
             // Ideally we'd loop until we get right country? No, too expensive.
             // We save whatever we got.
 
+            // Detect protocol from NovProxy format field
+            let detectedProtocol: 'HTTP' | 'SOCKS5' = 'HTTP';
+            if (purchasedPort.format) {
+                const formatStr = purchasedPort.format.toString().toLowerCase();
+                if (formatStr === '2' || formatStr.includes('socks')) {
+                    detectedProtocol = 'SOCKS5';
+                }
+            }
+
             await this.prisma.port.create({
                 data: {
                     host: upstreamInfo.host || purchasedPort.ip, // Validated
                     port: localPort || purchasedPort.port,
-                    protocol: 'HTTP',
+                    protocol: detectedProtocol,
                     country: targetRegion, // Use the region we just set
                     packageType: tier,
                     maxUsers: tier === 'High' ? 1 : 3, // Normal and Medium are both capped at 3 now

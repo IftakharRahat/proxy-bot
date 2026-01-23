@@ -100,18 +100,29 @@ proxy -p30000
             if (!port.localPort || !port.upstreamHost || !port.upstreamPort) continue;
 
             const allowedUsers = ['test', ...port.sessions.map(s => s.proxyUser)];
-            const sharedSocksPort = port.localPort + 5000;
+            const socksPort = port.localPort + 5000;
 
             const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
             
-            // Support both HTTP and SOCKS5 upstream protocols
+            // Determine upstream protocol - use port.protocol if available, default to HTTP
             const upstreamProtocol = port.protocol === 'SOCKS5' ? 'socks' : 'http';
+            
+            // Build parent connection based on upstream protocol
+            // For HTTP upstream: use 'http' parent
+            // For SOCKS5 upstream: use 'socks' parent
             const parentHTTP = port.upstreamUser
                 ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
-            const parentSOCKS = port.upstreamUser
-                ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
-                : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
+            
+            // For SOCKS5 local proxy, we can use the same parent if upstream is SOCKS5
+            // Otherwise use CONNECT method for HTTP upstream
+            const parentSOCKS = port.protocol === 'SOCKS5' && port.upstreamUser
+                ? `parent 1000 socks ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
+                : port.protocol === 'SOCKS5'
+                    ? `parent 1000 socks ${port.upstreamHost} ${port.upstreamPort}`
+                    : port.upstreamUser
+                        ? `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
+                        : `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}`;
 
             // Bandwidth Limiting (Traffic Shaping in bits per second)
             let bandlim = '';
@@ -123,41 +134,20 @@ proxy -p30000
             }
             // 'high' (Premium) gets no bandlim -> Unlimited speed
 
-            // HTTP Proxy (Shared - all users can use)
             config += `
-# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP (${port.packageType}) =====
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP (${port.packageType}, Upstream: ${port.protocol}) =====
 auth strong
 flush
 ${allowLines}
 ${bandlim}${parentHTTP}
 proxy -p${port.localPort}
-`;
 
-            // SOCKS5 Proxy - PER USER PORTS for individual bandwidth control
-            // Each user gets their own SOCKS5 port for proper authentication and bandwidth limiting
-            for (const session of port.sessions) {
-                // Generate consistent port: basePort + 5000 + (session.id % 1000)
-                // This ensures same user always gets same port and stays within reasonable range
-                const userSocksPort = port.localPort + 5000 + (session.id % 1000);
-                
-                // SOCKS5 per-user port - try auth without 'strong' for SOCKS5
-                config += `
-# ===== PORT ${userSocksPort} - SOCKS5 for ${session.proxyUser} (${port.country ?? 'N/A'}, ${port.packageType}) =====
-allow ${session.proxyUser} 0.0.0.0/0
-auth
-${bandlim}${parentSOCKS}
-socks -p${userSocksPort}
-`;
-            }
-
-            // Also create a shared SOCKS5 port for test user and backward compatibility
-            config += `
-# ===== PORT ${sharedSocksPort} - SOCKS5 Shared (${port.country ?? 'N/A'}, ${port.packageType}) =====
+# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS5 (${port.packageType}, Upstream: ${port.protocol}) =====
 auth strong
 flush
-allow test 0.0.0.0/0
+${allowLines}
 ${bandlim}${parentSOCKS}
-socks -p${sharedSocksPort}
+socks -a -p${socksPort}
 `;
         }
 

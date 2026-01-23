@@ -403,6 +403,7 @@ export class AdminService {
 
         // 4. Sync with Novproxy
         try {
+            const format = newPort.protocol === 'SOCKS5' ? '2' : '1';
             await this.novproxyService.batchEditPorts(
                 [newPort.id],
                 {
@@ -410,6 +411,7 @@ export class AdminService {
                     password: session.proxyPass,
                     region: newPort.country,
                     minute: session.rotationPeriod,
+                    format: format,
                 }
             );
         } catch (error) {
@@ -512,12 +514,22 @@ export class AdminService {
 
                         // Apply country and rotation settings via batch_edit
                         if (portIds.length > 0) {
-                            logger.log(`Applying settings: Country=${country}, Rotation=${rotation}min to ${portIds.length} ports`);
+                            // Detect protocol from first port (all ports in batch should have same protocol)
+                            let detectedFormat = '1'; // Default to HTTP
+                            if (activatedPorts[0]?.format) {
+                                const formatStr = activatedPorts[0].format.toString().toLowerCase();
+                                if (formatStr === '2' || formatStr.includes('socks')) {
+                                    detectedFormat = '2'; // SOCKS5
+                                }
+                            }
+                            
+                            logger.log(`Applying settings: Country=${country}, Rotation=${rotation}min, Protocol=${detectedFormat === '2' ? 'SOCKS5' : 'HTTP'} to ${portIds.length} ports`);
                             await this.novproxyService.batchEditPorts(portIds, {
                                 username: targetUser,
                                 password: targetPass,
                                 region: country,
                                 minute: rotation,
+                                format: detectedFormat,
                             });
                         }
 
