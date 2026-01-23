@@ -97,8 +97,8 @@ export class AdminService {
     }
 
     async getAllProxies() {
+        // Show ALL ports (both active and inactive) - don't filter by isActive
         const ports = await this.prisma.port.findMany({
-            where: { isActive: true },
             include: {
                 sessions: {
                     where: { status: 'ACTIVE' },
@@ -161,6 +161,29 @@ export class AdminService {
         return {
             success: true,
             message: `Port tier changed to ${newTier} (${newTier === 'High' ? 'Unlimited' : newTier === 'Medium' ? '3 Mbps' : '1 Mbps'})`
+        };
+    }
+
+    async changePortProtocol(portId: number, newProtocol: 'HTTP' | 'SOCKS5') {
+        const port = await this.prisma.port.findUnique({ where: { id: portId } });
+        if (!port) {
+            return { success: false, message: 'Port not found' };
+        }
+
+        await this.prisma.port.update({
+            where: { id: portId },
+            data: { protocol: newProtocol }
+        });
+
+        // Rebuild 3proxy config to apply protocol change
+        if (port.packageType !== 'High') {
+            await this.proxyChain.rebuildConfig();
+        }
+
+        this.logger.log(`Port ${portId} protocol changed from ${port.protocol} to ${newProtocol}`);
+        return {
+            success: true,
+            message: `Port protocol changed to ${newProtocol}`
         };
     }
 
@@ -545,6 +568,15 @@ export class AdminService {
                                 logger.log(`Syncing Port ${port.id}: Local=${localPortVal}, Upstream=${upHost}:${upPort}, User=${upUser}`);
                             }
 
+                            // Detect protocol from NovProxy format field
+                            let detectedProtocol: 'HTTP' | 'SOCKS5' = 'HTTP';
+                            if (port.format) {
+                                const formatStr = port.format.toString().toLowerCase();
+                                if (formatStr === '2' || formatStr.includes('socks')) {
+                                    detectedProtocol = 'SOCKS5';
+                                }
+                            }
+
                             await this.prisma.port.upsert({
                                 where: { id: port.id },
                                 create: {
@@ -552,7 +584,7 @@ export class AdminService {
                                     host: finalHost,
                                     port: finalPort,
                                     country: country,
-                                    protocol: 'HTTP',
+                                    protocol: detectedProtocol,
                                     packageType: packageType,
                                     maxUsers: packageType === 'High' ? 1 : packageType === 'Medium' ? 3 : 5,
                                     isActive: true,
@@ -567,12 +599,15 @@ export class AdminService {
                                     host: finalHost,
                                     port: finalPort,
                                     country: country,
-                                    isActive: true,
+                                    // PRESERVE existing isActive status for existing ports
+                                    // Only set to true if it's a new port (handled in create)
                                     localPort: localPortVal, // Update if re-refilling/resetting
                                     upstreamHost: upHost,
                                     upstreamPort: upPort, // Ensure upstream info is also updated
                                     upstreamUser: upUser,
                                     upstreamPass: upPass,
+                                    // Update protocol if detected, but preserve if admin manually set it
+                                    protocol: detectedProtocol !== existing?.protocol ? detectedProtocol : existing?.protocol,
                                 },
                             });
                         }
@@ -717,6 +752,16 @@ export class AdminService {
                     finalPort = existing.port;
                 }
 
+                // Detect protocol from NovProxy format field
+                // format "1" or "http" = HTTP, format "2" or "socks" = SOCKS5
+                let detectedProtocol: 'HTTP' | 'SOCKS5' = 'HTTP';
+                if (port.format) {
+                    const formatStr = port.format.toString().toLowerCase();
+                    if (formatStr === '2' || formatStr.includes('socks')) {
+                        detectedProtocol = 'SOCKS5';
+                    }
+                }
+
                 await this.prisma.port.upsert({
                     where: { id: port.id },
                     create: {
@@ -724,7 +769,7 @@ export class AdminService {
                         host: packageType !== 'High' ? vpsIp : port.ip,
                         port: packageType !== 'High' ? localPortVal! : port.port,
                         country: port.region || 'Random',
-                        protocol: 'HTTP',
+                        protocol: existing?.protocol || detectedProtocol, // Use existing or detect
                         packageType: packageType,
                         maxUsers: packageType === 'High' ? 1 : 3, // Normal=3, Medium=3, High=1
                         isActive: true,
@@ -736,12 +781,15 @@ export class AdminService {
                     },
                     update: {
                         // Only update upstream info and country, NEVER change localPort/host/port
+                        // PRESERVE existing isActive status - don't reactivate disabled ports
                         upstreamHost: port.ip,
                         upstreamPort: port.port,
                         upstreamUser: port.username,
                         upstreamPass: port.password,
                         country: port.region || existing?.country || 'Random',
-                        isActive: true,
+                        // Update protocol if it changed on NovProxy side, but preserve if admin set it manually
+                        protocol: detectedProtocol !== existing?.protocol ? detectedProtocol : existing?.protocol,
+                        // Don't change isActive - preserve admin's manual toggle
                     },
                 });
 
@@ -862,6 +910,15 @@ export class AdminService {
                     localPortVal = existing.localPort;
                 }
 
+                // Detect protocol from NovProxy format field
+                let detectedProtocol: 'HTTP' | 'SOCKS5' = 'HTTP';
+                if (port.format) {
+                    const formatStr = port.format.toString().toLowerCase();
+                    if (formatStr === '2' || formatStr.includes('socks')) {
+                        detectedProtocol = 'SOCKS5';
+                    }
+                }
+
                 await this.prisma.port.upsert({
                     where: { id: port.id },
                     create: {
@@ -869,7 +926,7 @@ export class AdminService {
                         host: packageType !== 'High' ? vpsIp : port.ip,
                         port: packageType !== 'High' ? localPortVal! : port.port,
                         country: port.region || 'Random',
-                        protocol: 'HTTP',
+                        protocol: detectedProtocol,
                         packageType: packageType,
                         maxUsers: packageType === 'High' ? 1 : 3, // Normal=3, Medium=3, High=1
                         isActive: true,
@@ -881,12 +938,15 @@ export class AdminService {
                     },
                     update: {
                         // Update upstream credentials and details
+                        // PRESERVE existing isActive status - don't reactivate disabled ports
                         upstreamHost: port.ip,
                         upstreamPort: port.port,
                         upstreamUser: port.username,
                         upstreamPass: port.password,
                         country: port.region || existing?.country || 'Random',
-                        isActive: true,
+                        // Update protocol if detected, but preserve if admin manually set it
+                        protocol: detectedProtocol !== existing?.protocol ? detectedProtocol : existing?.protocol,
+                        // Don't change isActive - preserve admin's manual toggle
                     }
                 });
 

@@ -106,11 +106,26 @@ export class BotUpdateService {
                 tier,
             );
 
+            // Get protocol info from the port to show correct connection details
+            const portInfo = await this.prisma.port.findUnique({ where: { id: portId } });
+            const isSocks5 = portInfo?.protocol === 'SOCKS5';
+            const isHigh = tier === 'high';
+            
+            let connectionInfo = '';
+            if (isHigh && isSocks5) {
+                // High tier SOCKS5: Only show SOCKS5 (direct NovProxy SOCKS5 connection)
+                connectionInfo = `<b>SOCKS5:</b> <code>${session.host}:${session.port}</code>\n`;
+            } else {
+                // HTTP or Shared: Show both HTTP and SOCKS5
+                connectionInfo = 
+                    `<b>HTTP:</b>  <code>${session.host}:${session.port}</code>\n` +
+                    `<b>SOCKS5:</b> <code>${session.host}:${isHigh ? session.port : session.port + 5000}</code>\n`;
+            }
+
             await ctx.replyWithHTML(
                 `✅ <b>Purchase Successful!</b>\n\n` +
                 `🌍 <b>${session.country} Proxy</b>\n` +
-                `<b>HTTP:</b>  <code>${session.host}:${session.port}</code>\n` +
-                `<b>SOCKS5:</b> <code>${session.host}:${tier === 'High' ? session.port : session.port + 5000}</code>\n` +
+                connectionInfo +
                 `User: <code>${session.username}</code>\n` +
                 `Pass: <code>${session.password}</code>\n\n` +
                 `Expires: ${session.expiresAt.toLocaleString()}\n\n` +
@@ -439,17 +454,33 @@ export class BotUpdateService {
                 const expiresIn = Math.ceil((session.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60));
 
                 const isHigh = session.port.packageType === 'High';
-                const displayHost = isHigh ? session.port.upstreamHost : session.port.host;
+                const isSocks5 = session.port.protocol === 'SOCKS5';
+                
+                // For High tier direct connections, use upstream info
+                // For shared ports, use VPS local ports
+                const displayHost = isHigh ? (session.port.upstreamHost || session.port.host) : session.port.host;
                 const displayPort = isHigh ? (session.port.upstreamPort || session.port.port) : (session.port.localPort || session.port.port);
                 const displaySocksPort = isHigh ? (session.port.upstreamPort || session.port.port) : ((session.port.localPort || session.port.port) + 5000);
 
-                message +=
-                    `🔹 <b>${session.port.country} Proxy</b>\n` +
-                    `   <b>HTTP:</b>  <code>${displayHost}:${displayPort}</code>\n` +
-                    `   <b>SOCKS5:</b> <code>${displayHost}:${displaySocksPort}</code>\n` +
-                    `   User: <code>${session.proxyUser}</code>\n` +
-                    `   Pass: <code>${session.proxyPass}</code>\n` +
-                    `   ⏰ Expires in: ${expiresIn}h\n\n`;
+                // Show protocol-specific connection info
+                if (isHigh && isSocks5) {
+                    // High tier SOCKS5: Only show SOCKS5 connection
+                    message +=
+                        `🔹 <b>${session.port.country} Proxy (SOCKS5)</b>\n` +
+                        `   <b>SOCKS5:</b> <code>${displayHost}:${displayPort}</code>\n` +
+                        `   User: <code>${session.proxyUser}</code>\n` +
+                        `   Pass: <code>${session.proxyPass}</code>\n` +
+                        `   ⏰ Expires in: ${expiresIn}h\n\n`;
+                } else {
+                    // HTTP or Shared ports: Show both HTTP and SOCKS5
+                    message +=
+                        `🔹 <b>${session.port.country} Proxy</b>\n` +
+                        `   <b>HTTP:</b>  <code>${displayHost}:${displayPort}</code>\n` +
+                        `   <b>SOCKS5:</b> <code>${displayHost}:${displaySocksPort}</code>\n` +
+                        `   User: <code>${session.proxyUser}</code>\n` +
+                        `   Pass: <code>${session.proxyPass}</code>\n` +
+                        `   ⏰ Expires in: ${expiresIn}h\n\n`;
+                }
             }
 
             const sessionButtons = sessions.map((s) => [

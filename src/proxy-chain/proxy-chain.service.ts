@@ -103,12 +103,15 @@ proxy -p30000
             const socksPort = port.localPort + 5000;
 
             const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
+            
+            // Support both HTTP and SOCKS5 upstream protocols
+            const upstreamProtocol = port.protocol === 'SOCKS5' ? 'socks' : 'http';
             const parentHTTP = port.upstreamUser
-                ? `parent 1000 http ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
-                : `parent 1000 http ${port.upstreamHost} ${port.upstreamPort}`;
+                ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
+                : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
             const parentConnect = port.upstreamUser
-                ? `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
-                : `parent 1000 connect ${port.upstreamHost} ${port.upstreamPort}`;
+                ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
+                : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
 
             // Bandwidth Limiting (Traffic Shaping in bits per second)
             let bandlim = '';

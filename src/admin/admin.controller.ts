@@ -92,6 +92,11 @@ export class AdminController {
         return this.adminService.changePortTier(parseInt(id, 10), body.newTier);
     }
 
+    @Patch('proxies/:id/change-protocol')
+    async changeProtocol(@Param('id') id: string, @Body() body: { newProtocol: 'HTTP' | 'SOCKS5' }) {
+        return this.adminService.changePortProtocol(parseInt(id, 10), body.newProtocol);
+    }
+
     @Patch('proxies/:id/toggle')
     async togglePort(@Param('id') id: string) {
         return this.adminService.togglePortStatus(parseInt(id, 10));
