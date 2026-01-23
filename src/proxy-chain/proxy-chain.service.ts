@@ -140,13 +140,11 @@ proxy -p${port.localPort}
                 // This ensures same user always gets same port and stays within reasonable range
                 const userSocksPort = port.localPort + 5000 + (session.id % 1000);
                 
-                // Define user explicitly for this service (3proxy sometimes needs per-service user definition)
-                // Note: For SOCKS5, auth must come before allow, and users must be defined
+                // SOCKS5 per-user port - users are defined globally, only allow is per-service
                 config += `
 # ===== PORT ${userSocksPort} - SOCKS5 for ${session.proxyUser} (${port.country ?? 'N/A'}, ${port.packageType}) =====
-users ${session.proxyUser}:CL:${session.proxyPass}
-allow ${session.proxyUser} 0.0.0.0/0
 auth strong
+allow ${session.proxyUser} 0.0.0.0/0
 ${bandlim}${parentSOCKS}
 socks -p${userSocksPort}
 `;
