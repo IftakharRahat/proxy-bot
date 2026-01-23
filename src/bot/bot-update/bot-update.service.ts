@@ -111,15 +111,25 @@ export class BotUpdateService {
             const isSocks5 = portInfo?.protocol === 'SOCKS5';
             const isHigh = tier === 'high';
             
+            // Calculate per-user SOCKS5 port: localPort + 5000 + (session.id % 1000)
+            // This matches the 3proxy config generation logic
+            const sessionRecord = await this.prisma.proxySession.findUnique({ 
+                where: { id: session.id },
+                include: { port: true }
+            });
+            const userSocksPort = sessionRecord && !isHigh 
+                ? (sessionRecord.port.localPort || sessionRecord.port.port) + 5000 + (session.id % 1000)
+                : (isHigh ? session.port : session.port + 5000);
+            
             let connectionInfo = '';
             if (isHigh && isSocks5) {
                 // High tier SOCKS5: Only show SOCKS5 (direct NovProxy SOCKS5 connection)
                 connectionInfo = `<b>SOCKS5:</b> <code>${session.host}:${session.port}</code>\n`;
             } else {
-                // HTTP or Shared: Show both HTTP and SOCKS5
+                // HTTP or Shared: Show both HTTP and SOCKS5 (per-user SOCKS5 port for bandwidth control)
                 connectionInfo = 
                     `<b>HTTP:</b>  <code>${session.host}:${session.port}</code>\n` +
-                    `<b>SOCKS5:</b> <code>${session.host}:${isHigh ? session.port : session.port + 5000}</code>\n`;
+                    `<b>SOCKS5:</b> <code>${session.host}:${userSocksPort}</code>\n`;
             }
 
             await ctx.replyWithHTML(
@@ -460,7 +470,12 @@ export class BotUpdateService {
                 // For shared ports, use VPS local ports
                 const displayHost = isHigh ? (session.port.upstreamHost || session.port.host) : session.port.host;
                 const displayPort = isHigh ? (session.port.upstreamPort || session.port.port) : (session.port.localPort || session.port.port);
-                const displaySocksPort = isHigh ? (session.port.upstreamPort || session.port.port) : ((session.port.localPort || session.port.port) + 5000);
+                
+                // Calculate per-user SOCKS5 port: localPort + 5000 + (session.id % 1000)
+                // This matches the 3proxy config generation logic for individual bandwidth control
+                const userSocksPort = isHigh 
+                    ? (session.port.upstreamPort || session.port.port)
+                    : ((session.port.localPort || session.port.port) + 5000 + (session.id % 1000));
 
                 // Show protocol-specific connection info
                 if (isHigh && isSocks5) {
@@ -472,11 +487,11 @@ export class BotUpdateService {
                         `   Pass: <code>${session.proxyPass}</code>\n` +
                         `   ⏰ Expires in: ${expiresIn}h\n\n`;
                 } else {
-                    // HTTP or Shared ports: Show both HTTP and SOCKS5
+                    // HTTP or Shared ports: Show both HTTP and SOCKS5 (per-user SOCKS5 port)
                     message +=
                         `🔹 <b>${session.port.country} Proxy</b>\n` +
                         `   <b>HTTP:</b>  <code>${displayHost}:${displayPort}</code>\n` +
-                        `   <b>SOCKS5:</b> <code>${displayHost}:${displaySocksPort}</code>\n` +
+                        `   <b>SOCKS5:</b> <code>${displayHost}:${userSocksPort}</code>\n` +
                         `   User: <code>${session.proxyUser}</code>\n` +
                         `   Pass: <code>${session.proxyPass}</code>\n` +
                         `   ⏰ Expires in: ${expiresIn}h\n\n`;

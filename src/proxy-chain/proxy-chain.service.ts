@@ -100,7 +100,7 @@ proxy -p30000
             if (!port.localPort || !port.upstreamHost || !port.upstreamPort) continue;
 
             const allowedUsers = ['test', ...port.sessions.map(s => s.proxyUser)];
-            const socksPort = port.localPort + 5000;
+            const sharedSocksPort = port.localPort + 5000;
 
             const allowLines = allowedUsers.map(u => `allow ${u} 0.0.0.0/0`).join('\n');
             
@@ -109,7 +109,7 @@ proxy -p30000
             const parentHTTP = port.upstreamUser
                 ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
-            const parentConnect = port.upstreamUser
+            const parentSOCKS = port.upstreamUser
                 ? `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort} ${port.upstreamUser} ${port.upstreamPass}`
                 : `parent 1000 ${upstreamProtocol} ${port.upstreamHost} ${port.upstreamPort}`;
 
@@ -123,6 +123,7 @@ proxy -p30000
             }
             // 'high' (Premium) gets no bandlim -> Unlimited speed
 
+            // HTTP Proxy (Shared - all users can use)
             config += `
 # ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - HTTP (${port.packageType}) =====
 auth strong
@@ -130,13 +131,33 @@ flush
 ${allowLines}
 ${bandlim}${parentHTTP}
 proxy -p${port.localPort}
+`;
 
-# ===== PORT ${port.localPort} (${port.country ?? 'N/A'}) - SOCKS (${port.packageType}) =====
+            // SOCKS5 Proxy - PER USER PORTS for individual bandwidth control
+            // Each user gets their own SOCKS5 port for proper authentication and bandwidth limiting
+            for (const session of port.sessions) {
+                // Generate consistent port: basePort + 5000 + (session.id % 1000)
+                // This ensures same user always gets same port and stays within reasonable range
+                const userSocksPort = port.localPort + 5000 + (session.id % 1000);
+                
+                config += `
+# ===== PORT ${userSocksPort} - SOCKS5 for ${session.proxyUser} (${port.country ?? 'N/A'}, ${port.packageType}) =====
 auth strong
 flush
-${allowLines}
-${bandlim}${parentConnect}
-socks -p${socksPort}
+allow ${session.proxyUser} 0.0.0.0/0
+${bandlim}${parentSOCKS}
+socks -p${userSocksPort}
+`;
+            }
+
+            // Also create a shared SOCKS5 port for test user and backward compatibility
+            config += `
+# ===== PORT ${sharedSocksPort} - SOCKS5 Shared (${port.country ?? 'N/A'}, ${port.packageType}) =====
+auth strong
+flush
+allow test 0.0.0.0/0
+${bandlim}${parentSOCKS}
+socks -p${sharedSocksPort}
 `;
         }
 
